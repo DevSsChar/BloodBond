@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useSession, signIn, signOut } from "next-auth/react" 
+import { useRef, useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+import Link from "next/link";
 import { 
   Heart, 
   TriangleAlert,
@@ -9,27 +12,59 @@ import {
   Sun,
   Moon,
   Menu,
-  X
+  X,
+  LogIn,
+  UserCircle,
+  LogOut
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
 const Navbar = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { data: session, status } = useSession();
+  
+  const profileRef = useRef(null);
+
+  // Handle clicks outside of profile dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+  
+  const toggleProfile = () => {
+    setIsProfileOpen(!isProfileOpen);
+  };
+  
+  const handleLogout = () => {
+    signOut();
+    setIsProfileOpen(false);
+  };
+
+  const isLoading = status === "loading";
 
   return (
     <header className="bg-[var(--card-background)] border-b border-[var(--border-color)] sticky top-0 z-50 w-full shadow-sm transition-colors duration-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-18 md:h-20 lg:h-24">
           {/* Logo */}
-          <button className="flex items-center space-x-2 sm:space-x-2.5 text-xl sm:text-2xl md:text-2xl lg:text-3xl font-bold font-heading text-[#ef4444] hover:text-[#ef4444]/90 transition-colors">
-            <Heart className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" aria-hidden="true" />
-            <span>BloodBond</span>
-          </button>
+          <Link href="/">
+            <button className="flex items-center space-x-2 sm:space-x-2.5 text-xl sm:text-2xl md:text-2xl lg:text-3xl font-bold font-heading text-[#ef4444] hover:text-[#ef4444]/90 transition-colors hover:cursor-pointer">
+              <Heart className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" aria-hidden="true" />
+              <span>BloodBond</span>
+            </button>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1 xl:space-x-6">
@@ -99,7 +134,54 @@ const Navbar = () => {
                 <Moon className="w-5 h-5 text-gray-700" aria-hidden="true" />
               )}
             </button>
-            
+
+            {/* User or Login button */}
+            {isLoading ? (
+              <div className="w-10 h-10 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+            ) : session ? (
+              <div className="relative" ref={profileRef}>
+                <button 
+                  onClick={toggleProfile}
+                  className="flex items-center space-x-2 px-3 md:px-4 py-2 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <UserCircle className="w-5 h-5 text-[#ef4444]" aria-hidden="true" />
+                  <span className="hidden md:inline truncate max-w-[100px] lg:max-w-[150px]">
+                    {session.user?.name || session.user?.email || "Account"}
+                  </span>
+                </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[var(--card-background)] border border-[var(--border-color)] rounded-md shadow-lg z-50">
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-sm text-[var(--text-secondary)]">
+                        Signed in as{" "}
+                        <span className="font-medium text-[var(--text-primary)]">
+                          {session.user?.email}
+                        </span>
+                      </div>
+                      <hr className="border-[var(--border-color)] my-1" />
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full text-left px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : ( 
+              <Link href="/login">
+                <button 
+                  className="flex items-center space-x-1.5 px-3 md:px-4 py-2 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-primary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors"
+                >
+                  <LogIn className="w-5 h-5" aria-hidden="true" />
+                  <span className="hidden md:inline">Login</span>
+                </button>
+              </Link>
+            )}
+
             {/* Emergency CTA button */}
             <button className="hidden sm:flex items-center justify-center gap-1.5 px-3 md:px-4 lg:px-5 py-2 lg:py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-sm lg:text-base transition-colors">
               <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
@@ -146,6 +228,26 @@ const Navbar = () => {
                 <Activity className="w-5 h-5" aria-hidden="true" />
                 <span>Dashboard</span>
               </button>
+              
+              {/* User or Login button in mobile menu */}
+              {session ? (
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5"
+                >
+                  <LogOut className="w-5 h-5" aria-hidden="true" />
+                  <span>Sign Out ({session.user?.name || "Account"})</span>
+                </button>
+              ) : (
+                <Link href="/login">
+                  <button 
+                    className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 w-full text-left"
+                  >
+                    <LogIn className="w-5 h-5" aria-hidden="true" />
+                    <span>Login</span>
+                  </button>
+                </Link>
+              )}
 
               <button className="flex items-center justify-center gap-2 mt-2 px-5 py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-base">
                 <TriangleAlert className="w-5 h-5" aria-hidden="true" />

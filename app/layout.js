@@ -4,6 +4,7 @@ import "./dark-theme.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { ThemeProvider } from "@/context/ThemeContext";
+import SessionWrapper from "@/components/SessionProvider";
 
 // Load Inter as body font
 const inter = Inter({
@@ -27,13 +28,17 @@ export default function RootLayout({ children }) {
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.variable} ${manrope.variable} font-sans bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200`}>
         <ThemeProvider>
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
+          <SessionWrapper>
+            <Navbar />
+            <main className="min-h-screen">
+              {children}
+            </main>
+            <Footer />
+          </SessionWrapper>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
+    
