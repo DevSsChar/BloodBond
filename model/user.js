@@ -1,24 +1,13 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: [true, "Email is required"],
-    unique: true,
-    trim: true,
-    lowercase: true
-  },
-//   password: {
-//     type: String,
-//     required: [true, "Password is required"]
-//   },
-  lastLoginDate: {
-    type: Date,
-    default: Date.now
-  }
+  name: String,
+  age: Number,
+  blood_type: String,
+  mobile_number: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true }, // hashed
+  role: { type: String, enum: ["user", "hospital", "bloodbank_admin"], required: true }
 });
 
-// Check if model already exists (for Next.js hot reloading)
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-
-module.exports = User;
+export default mongoose.models.User || mongoose.model("User", userSchema);
