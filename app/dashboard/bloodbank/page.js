@@ -1,52 +1,24 @@
 "use client"
 import React from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { Building2, Users, Activity, TrendingUp } from 'lucide-react';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const BloodBankDashboard = () => {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    if (!session) {
-      router.push('/login');
-      return;
-    }
-
-    // Check if user has the correct role
-    if (session.user.role !== 'bloodbank_admin') {
-      router.push('/register');
-      return;
-    }
-  }, [session, status, router]);
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#ef4444]"></div>
-      </div>
-    );
-  }
-
-  if (!session || session.user.role !== 'bloodbank_admin') {
-    return null;
-  }
+  const { data: session } = useSession();
 
   return (
-    <div className="min-h-screen bg-[var(--background)] py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-2 mb-4">
-            <Building2 className="h-8 w-8 text-[#ef4444]" />
-            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Blood Bank Dashboard</h1>
+    <ProtectedRoute allowedRoles={['bloodbank_admin']}>
+      <div className="min-h-screen bg-[var(--background)] py-8">
+        <div className="container mx-auto px-4 max-w-6xl">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-2 mb-4">
+              <Building2 className="h-8 w-8 text-[#ef4444]" />
+              <h1 className="text-3xl font-bold text-[var(--text-primary)]">Blood Bank Dashboard</h1>
+            </div>
+            <p className="text-[var(--text-secondary)]">Welcome back, {session?.user?.name || session?.user?.email}!</p>
           </div>
-          <p className="text-[var(--text-secondary)]">Welcome back, {session.user.name || session.user.email}!</p>
-        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -134,7 +106,8 @@ const BloodBankDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 };
 

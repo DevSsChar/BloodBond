@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
-import BloodRequest from "@/models/BloodRequest";
-import User from "@/models/User";
-import BloodBank from "@/models/BloodBank";
-import BloodInventory from "@/models/BloodInventory";
+import connectDB from "@/db/connectDB.mjs";
+import BloodRequest from "@/model/BloodRequest.js";
+import User from "@/model/user.js";
+import BloodBank from "@/model/BloodBank.js";
+import BloodInventory from "@/model/BloodInventory.js";
+import { authenticateRole } from "@/lib/roleAuth.js";
 
 export async function POST(req) {
+  // Protect route - only hospitals and users can create blood requests
+  const auth = await authenticateRole(req, ['hospital', 'user']);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
 
   try {
@@ -110,6 +120,15 @@ export async function POST(req) {
 
 // Get blood requests - with role-based filtering
 export async function GET(req) {
+  // Protect route - all authenticated users can view requests
+  const auth = await authenticateRole(req);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
   
   try {
@@ -119,73 +138,30 @@ export async function GET(req) {
     const status = searchParams.get("status");
     const request_type = searchParams.get("request_type");
     
-    if (!user_id) {
-      return NextResponse.json(
-        { error: "User ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify user exists
-    const user = await User.findById(user_id);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
     let query = {};
     
-    // Apply role-based filtering
-    if (user.role === "bloodbank_admin") {
-      // Blood bank admins can see requests for their blood banks
-      if (!bloodbank_id) {
-        // Get all blood banks managed by this admin
-        const bloodBanks = await BloodBank.find({ user_id });
-        const bloodBankIds = bloodBanks.map(bank => bank._id);
-        
-        if (bloodBankIds.length === 0) {
-          return NextResponse.json({ requests: [] }, { status: 200 });
-        }
-        
-        query.bloodbank_id = { $in: bloodBankIds };
-      } else {
-        // Verify admin manages this blood bank
-        const bloodBank = await BloodBank.findOne({
-          _id: bloodbank_id,
-          user_id
-        });
+    // Role-based filtering
+    if (auth.role === 'user' && user_id) {
+      // Users can only see their own requests
+      query.user_id = user_id;
+    } else if (auth.role === 'bloodbank_admin') {
+      // Blood banks can see requests to their banks
+      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
+    } else if (auth.role === 'hospital') {
+      // Hospitals can see all requests or filter by their requests
+      if (user_id) query.user_id = user_id;
+      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
+    }
+    
+    // Apply additional filters
+    if (status) query.status = status;
+    if (request_type) query.request_type = request_type;
+    
+    const requests = await BloodRequest.find(query)
+      .populate('user_id', 'name email')
+      .populate('bloodbank_id', 'name address')
+      .sort({ requested_date: -1 });
 
-        if (!bloodBank) {
-          return NextResponse.json(
-            { error: "Not authorized to view requests for this blood bank" },
-            { status: 403 }
-          );
-        }
-        
-        query.bloodbank_id = bloodbank_id;
-      }
-    } else if (user.role === "hospital") {
-      // Hospitals see their own requests
-      query.requested_by_hospital = user_id;
-    } else {
-      // Regular users see their own requests
-      query.requested_by_user = user_id;
-    }
-    
-    // Additional filters
-    if (status && ["pending", "accepted", "rejected"].includes(status)) {
-      query.status = status;
-    }
-    
-    if (request_type && ["normal", "emergency"].includes(request_type)) {
-      query.request_type = request_type;
-    }
-    
-    // Get requests and sort by date (newest first)
-    const requests = await BloodRequest.find(query).sort({ requested_date: -1 });
-    
     return NextResponse.json({ requests }, { status: 200 });
   } catch (error) {
     console.error("Error fetching blood requests:", error);

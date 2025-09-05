@@ -12,6 +12,7 @@ export const useUserRole = () => {
         userRole: null,
         loading: true,
         hasRole: false,
+        isRegistrationComplete: false,
         isDonor: false,
         isBloodBank: false,
         isHospital: false
@@ -23,6 +24,7 @@ export const useUserRole = () => {
         userRole: null,
         loading: false,
         hasRole: false,
+        isRegistrationComplete: false,
         isDonor: false,
         isBloodBank: false,
         isHospital: false
@@ -31,16 +33,18 @@ export const useUserRole = () => {
 
     const userRole = session.user.role || null;
     const hasRole = !!(userRole && userRole !== null && userRole !== undefined);
+    const isRegistrationComplete = session.user.isRegistrationComplete || false;
 
     return {
       userRole,
       loading: false,
       hasRole,
+      isRegistrationComplete,
       isDonor: userRole === 'user',
       isBloodBank: userRole === 'bloodbank_admin',
       isHospital: userRole === 'hospital'
     };
-  }, [session?.user?.role, status]);
+  }, [session?.user?.role, session?.user?.isRegistrationComplete, status]);
 
   return {
     ...roleData,

@@ -1,62 +1,90 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/db/connectDB";
-import BloodBank from "@/model/BloodBank";
-import User from "@/model/user";
-import bcrypt from "bcrypt";
+import connectDB from "@/db/connectDB.mjs";
+import BloodBank from "@/model/BloodBank.js";
+import User from "@/model/user.js";
+import { authenticateRole } from "@/lib/roleAuth.js";
 
 export async function POST(req) {
+  // Protect route - only blood bank admins can create blood banks, allow incomplete registration
+  const auth = await authenticateRole(req, ['bloodbank_admin'], true);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
 
   try {
     const body = await req.json();
-    const { name, address, latitude, longitude, contact_number, email, role } = body;
+    const { name, address, latitude, longitude, contact_number } = body;
+
+    console.log("Blood bank registration for user ID:", auth.user._id);
 
     // Validate required fields
-    if (!name || !address || !latitude || !longitude || !contact_number || !email) {
+    if (!name || !address || !latitude || !longitude || !contact_number) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Check if user already exists
-    const existingUserByEmail = await User.findOne({ email });
-    if (existingUserByEmail) {
-      return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 409 }
+    // Update user profile with basic information only
+    const updatedUser = await User.findByIdAndUpdate(
+      auth.user._id,
+      { 
+        name,
+        isRegistrationComplete: true // Mark registration as complete
+        // Don't update mobile_number in User model - it goes to BloodBank model
+      },
+      { new: true }
+    );
+
+    // Create or update blood bank profile
+    const existingBloodBank = await BloodBank.findOne({ user_id: auth.user._id });
+    let bloodBank;
+    
+    if (existingBloodBank) {
+      bloodBank = await BloodBank.findByIdAndUpdate(
+        existingBloodBank._id,
+        {
+          name,
+          address,
+          latitude,
+          longitude,
+          contact_number,
+        },
+        { new: true }
       );
+    } else {
+      bloodBank = await BloodBank.create({
+        user_id: auth.user._id,
+        name,
+        address,
+        latitude,
+        longitude,
+        contact_number
+      });
     }
 
-    const existingUserByMobile = await User.findOne({ mobile_number: contact_number });
-    if (existingUserByMobile) {
-      return NextResponse.json(
-        { error: "Contact number already registered" },
-        { status: 409 }
-      );
-    }
-
-    // Create new user first
-    const newUser = await User.create({
-      name,
-      mobile_number: contact_number,
-      email,
-      password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
-      role: 'bloodbank_admin'
-    });
-
-    // Create new blood bank
-    const newBloodBank = await BloodBank.create({
-      user_id: newUser._id,
-      name,
-      address,
-      latitude,
-      longitude,
-      contact_number
+    console.log("Blood bank registration completed:", {
+      userId: updatedUser._id,
+      registrationComplete: updatedUser.isRegistrationComplete
     });
 
     return NextResponse.json(
-      { message: "Blood bank created successfully", bloodBank: newBloodBank },
+      { 
+        message: "Blood bank registered successfully", 
+        user: {
+          id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          isRegistrationComplete: updatedUser.isRegistrationComplete
+        },
+        bloodBank: bloodBank 
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -70,6 +98,7 @@ export async function POST(req) {
 
 // Get all blood banks or filter by ID
 export async function GET(req) {
+  // Allow public access to view blood banks (for emergency requests, donations, etc.)
   await connectDB();
   
   try {

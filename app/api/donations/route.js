@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
-import Donation from "@/models/Donation";
-import User from "@/models/User";
-import Donor from "@/models/Donor";
+import connectDB from "@/db/connectDB.mjs";
+import Donation from "@/model/Donation.js";
+import User from "@/model/user.js";
+import Doner from "@/model/Doner.js";
+import { authenticateRole } from "@/lib/roleAuth.js";
 
 export async function POST(req) {
+  // Protect route - only donors and blood banks can create donations
+  const auth = await authenticateRole(req, ['user', 'bloodbank_admin']);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
 
   try {
@@ -71,6 +81,15 @@ export async function POST(req) {
 
 // Get all donations or filter by donor
 export async function GET(req) {
+  // Protect route - all authenticated users can view donations
+  const auth = await authenticateRole(req);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
   
   try {
@@ -80,12 +99,20 @@ export async function GET(req) {
     
     let query = {};
     
-    if (donor_id) {
+    // Role-based filtering
+    if (auth.role === 'user' && donor_id) {
+      // Donors can only see their own donations
       query.donor_id = donor_id;
-    }
-    
-    if (bloodbank_id) {
+    } else if (auth.role === 'bloodbank_admin' && bloodbank_id) {
+      // Blood banks can see donations to their bank
       query.bloodbank_id = bloodbank_id;
+    } else if (auth.role === 'hospital') {
+      // Hospitals can see all donations (for emergency requests)
+      // No additional filtering
+    } else {
+      // Apply filters if provided
+      if (donor_id) query.donor_id = donor_id;
+      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
     }
     
     const donations = await Donation.find(query).sort({ donation_date: -1 });

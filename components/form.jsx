@@ -511,6 +511,7 @@ const HospitalForm = ({ onSubmit, loading }) => {
 // Main Form Container
 const RegistrationForm = ({ role }) => {
   const [loading, setLoading] = useState(false);
+  const { data: session } = useSession(); // Get session only
   const router = useRouter();
 
   const getRoleTitle = () => {
@@ -552,9 +553,52 @@ const RegistrationForm = ({ role }) => {
       console.log('Response:', response.status, result);
 
       if (response.ok) {
-        console.log('Registration successful!');
-        alert('Registration successful!');
-        router.push('/dashboard');
+        console.log('Registration successful!', result);
+        // Mark completion locally immediately to avoid UI loop while we sync session
+        try {
+          localStorage.setItem('registrationComplete', 'true');
+        } catch (e) {
+          console.warn('Could not write registrationComplete to localStorage');
+        }
+
+        // Poll backend status until it reflects completion to avoid stale session token
+        const pollStatus = async (attempt = 1) => {
+          try {
+            const statusRes = await fetch('/api/users/status', { cache: 'no-store' });
+            if (statusRes.ok) {
+              const statusJson = await statusRes.json();
+              console.log('Status poll attempt', attempt, statusJson);
+              if (statusJson?.user?.isRegistrationComplete) {
+                return true;
+              }
+            }
+          } catch (e) {
+            console.warn('Status poll failed attempt', attempt, e);
+          }
+          if (attempt < 5) {
+            await new Promise(r => setTimeout(r, 400 * attempt));
+            return pollStatus(attempt + 1);
+          }
+          return false;
+        };
+
+        const backendSynced = await pollStatus();
+        if (!backendSynced) {
+          console.warn('Backend did not confirm registration completion after polling – proceeding anyway');
+        }
+
+        alert('Registration completed! Redirecting to your dashboard...');
+
+        // Prefer router.replace so history does not keep the form
+        const dashboardPath = role === 'user' ? '/dashboard/donor' : 
+                              role === 'bloodbank_admin' ? '/dashboard/bloodbank' : 
+                              '/dashboard/hospital';
+        try {
+          // Force a session refetch (triggers JWT refresh due to false->true transition)
+          await fetch('/api/auth/session?update=1', { cache: 'no-store' }).catch(()=>{});
+        } catch {}
+        // Navigate
+        router.replace(dashboardPath);
       } else {
         console.error('Registration failed:', result);
         alert(`Registration failed: ${result.error || 'Unknown error'}`);

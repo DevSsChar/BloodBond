@@ -46,10 +46,13 @@ export const authOptions = {
           user.lastLoginDate = new Date();
           await user.save();
           
-          // Return user object
+          // Return user object - consistent with OAuth signin
           return {
             id: user._id.toString(),
+            name: user.name,
             email: user.email,
+            role: user.role,
+            isRegistrationComplete: user.isRegistrationComplete
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -91,21 +94,29 @@ export const authOptions = {
       const dbUser = await User.findOneAndUpdate(
         { email },
         {
-          // Just update the login date
+          // Just update the login date for existing users
           $set: {
             lastLoginDate: new Date(),
           },
-          // Only set this when creating a new user
+          // Only set these fields when creating a new user
           $setOnInsert: {
             email: email,
             name: user?.name || profile?.name || profile?.login || email.split('@')[0],
-            mobile_number: '', // Will be filled during registration
             password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
-            role: null // Will be set during role selection
+            // Explicitly set role to null for new users - will be set during role selection
+            role: null,
+            isRegistrationComplete: false
           },
         },
         { upsert: true, new: true }
       );
+
+      console.log('SignIn callback - User from DB:', {
+        id: dbUser._id,
+        email: dbUser.email,
+        role: dbUser.role,
+        isNewUser: !dbUser.lastLoginDate || dbUser.role === null
+      });
 
       // Add user ID to the user object for the JWT
       user.id = dbUser._id.toString();
@@ -114,6 +125,8 @@ export const authOptions = {
     },
 
     async jwt({ token, user, trigger, session }) {
+      console.log('JWT Callback called - trigger:', trigger, 'user:', !!user, 'token.userId:', token.userId);
+      
       if (user) {
         token.userId = user.id;
         // Fetch user role from database
@@ -123,36 +136,63 @@ export const authOptions = {
           if (dbUser) {
             token.role = dbUser.role;
             token.name = dbUser.name;
+            token.isRegistrationComplete = dbUser.isRegistrationComplete;
+            console.log('JWT callback (initial) - User role from DB:', dbUser.role, 'Registration complete:', dbUser.isRegistrationComplete);
           }
         } catch (error) {
           console.error("Error fetching user role:", error);
         }
       }
       
-      // If session is being updated (e.g., after role selection), refresh user data
-      if (trigger === "update" && token.userId) {
+      // Always refresh data if registration status is incomplete or undefined, or if update is triggered
+      const shouldRefresh = trigger === "update" || 
+                          token.isRegistrationComplete === undefined || 
+                          token.isRegistrationComplete === false ||
+                          token.isRegistrationComplete === null;
+      
+      if (shouldRefresh && token.userId) {
+        console.log('JWT callback - Refreshing user data (trigger:', trigger, 'isRegistrationComplete:', token.isRegistrationComplete, ')');
         try {
           await connectDB();
           const dbUser = await User.findById(token.userId);
           if (dbUser) {
             token.role = dbUser.role;
             token.name = dbUser.name;
+            token.isRegistrationComplete = dbUser.isRegistrationComplete;
+            console.log('JWT callback (refresh) - User role from DB:', dbUser.role, 'Registration complete:', dbUser.isRegistrationComplete);
+          } else {
+            console.log('JWT callback (refresh) - User not found in database');
           }
         } catch (error) {
           console.error("Error refreshing user data:", error);
         }
       }
       
+      console.log('JWT callback - Final token:', { 
+        userId: token.userId, 
+        role: token.role, 
+        isRegistrationComplete: token.isRegistrationComplete 
+      });
+      
       return token;
     },
 
     async session({ session, token }) {
+      console.log('Session callback called');
       if (session?.user) {
         session.user.id = token.userId;
         session.user.role = token.role;
+        session.user.isRegistrationComplete = token.isRegistrationComplete;
         if (token.name) {
           session.user.name = token.name;
         }
+        
+        console.log('Session callback - Final session.user:', {
+          id: session.user.id,
+          role: session.user.role,
+          isRegistrationComplete: session.user.isRegistrationComplete,
+          name: session.user.name
+        });
       }
       return session;
     },

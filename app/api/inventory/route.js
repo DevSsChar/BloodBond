@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
-import BloodInventory from "@/models/BloodInventory";
-import BloodBank from "@/models/BloodBank";
-import User from "@/models/User";
+import connectDB from "@/db/connectDB.mjs";
+import BloodInventory from "@/model/BloodInventory.js";
+import BloodBank from "@/model/BloodBank.js";
+import User from "@/model/user.js";
+import { authenticateRole } from "@/lib/roleAuth.js";
 
 export async function POST(req) {
+  // Protect route - only blood bank admins can manage inventory
+  const auth = await authenticateRole(req, ['bloodbank_admin']);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
 
   try {
@@ -112,6 +122,15 @@ export async function POST(req) {
 
 // Get blood inventory - can be accessed by anyone but with admin-specific controls
 export async function GET(req) {
+  // Protect route - all authenticated users can view inventory
+  const auth = await authenticateRole(req);
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error },
+      { status: auth.status }
+    );
+  }
+
   await connectDB();
   
   try {
@@ -122,51 +141,16 @@ export async function GET(req) {
     
     let query = {};
     
-    // If admin_id is provided, verify it's a bloodbank admin and show only their banks
-    if (admin_id) {
-      const user = await User.findById(admin_id);
-      if (!user || user.role !== "bloodbank_admin") {
-        return NextResponse.json(
-          { error: "Unauthorized access" },
-          { status: 403 }
-        );
-      }
-      
-      // Get all blood banks managed by this admin
-      if (!bloodbank_id) {
-        const bloodBanks = await BloodBank.find({ user_id: admin_id });
-        const bloodBankIds = bloodBanks.map(bank => bank._id);
-        
-        if (bloodBankIds.length === 0) {
-          return NextResponse.json({ inventory: [] }, { status: 200 });
-        }
-        
-        query.bloodbank_id = { $in: bloodBankIds };
-      } else {
-        // Verify this admin manages this blood bank
-        const bloodBank = await BloodBank.findOne({
-          _id: bloodbank_id,
-          user_id: admin_id
-        });
-
-        if (!bloodBank) {
-          return NextResponse.json(
-            { error: "Unauthorized access to this blood bank's inventory" },
-            { status: 403 }
-          );
-        }
-        
-        query.bloodbank_id = bloodbank_id;
-      }
-    } 
-    // Public access - specific bloodbank only
-    else if (bloodbank_id) {
-      query.bloodbank_id = bloodbank_id;
+    // Role-based filtering
+    if (auth.role === 'bloodbank_admin') {
+      // Blood bank admins can only see their own inventory
+      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
+    } else {
+      // Other roles can see all inventory (with filters if provided)
+      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
     }
     
-    if (blood_type) {
-      query.blood_type = blood_type;
-    }
+    if (blood_type) query.blood_type = blood_type;
     
     // Filter out expired inventory
     query.expiry_date = { $gt: new Date() };

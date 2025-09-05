@@ -1,68 +1,114 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/db/connectDB";
-import HospitalProfile from "@/model/HospitalProfile";
-import User from "@/model/user";
-import bcrypt from "bcrypt";
+import connectDB from "@/db/connectDB.mjs";
+import HospitalProfile from "@/model/HospitalProfile.js";
+import User from "@/model/user.js";
+import { getToken } from "next-auth/jwt";
 
 export async function POST(req) {
-  await connectDB();
-
   try {
+    await connectDB();
+
+    // Get the JWT token to identify the current user
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    
+    if (!token || !token.userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - No valid session" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
-    const { name, address, latitude, longitude, contact_number, email, role } = body;
+    const { name, address, latitude, longitude, contact_number } = body;
+
+    console.log("Hospital registration for user ID:", token.userId);
 
     // Validate required fields
-    if (!name || !address || !latitude || !longitude || !contact_number || !email) {
+    if (!name || !address || !latitude || !longitude || !contact_number) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Check if user already exists
-    const existingUserByEmail = await User.findOne({ email });
-    if (existingUserByEmail) {
+    // Find the existing user
+    const user = await User.findById(token.userId);
+    if (!user) {
       return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 409 }
+        { error: "User not found" },
+        { status: 404 }
       );
     }
 
-    const existingUserByMobile = await User.findOne({ mobile_number: contact_number });
-    if (existingUserByMobile) {
+    // Verify user has the correct role
+    if (user.role !== 'hospital') {
       return NextResponse.json(
-        { error: "Contact number already registered" },
-        { status: 409 }
+        { error: "Invalid role for hospital registration" },
+        { status: 403 }
       );
     }
 
-    // Create new user first
-    const newUser = await User.create({
-      name,
-      mobile_number: contact_number,
-      email,
-      password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
-      role: 'hospital'
-    });
+    // Update user profile with basic information only
+    const updatedUser = await User.findByIdAndUpdate(
+      token.userId,
+      { 
+        name,
+        isRegistrationComplete: true // Mark registration as complete
+        // Don't update mobile_number in User model - it goes to Hospital model
+      },
+      { new: true }
+    );
 
-    // Create new hospital profile
-    const newProfile = await HospitalProfile.create({
-      user_id: newUser._id,
-      name,
-      address,
-      latitude,
-      longitude,
-      contact_number
+    // Create or update hospital profile
+    const existingHospital = await HospitalProfile.findOne({ user_id: token.userId });
+    let hospital;
+    
+    if (existingHospital) {
+      hospital = await HospitalProfile.findByIdAndUpdate(
+        existingHospital._id,
+        {
+          name,
+          address,
+          latitude,
+          longitude,
+          contact_number,
+        },
+        { new: true }
+      );
+    } else {
+      hospital = await HospitalProfile.create({
+        user_id: token.userId,
+        name,
+        address,
+        latitude,
+        longitude,
+        contact_number,
+      });
+    }
+
+    console.log("Hospital registration completed:", {
+      userId: updatedUser._id,
+      registrationComplete: updatedUser.isRegistrationComplete
     });
 
     return NextResponse.json(
-      { message: "Hospital profile created successfully", profile: newProfile },
+      { 
+        message: "Hospital registered successfully", 
+        user: {
+          id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          isRegistrationComplete: updatedUser.isRegistrationComplete
+        },
+        hospital: hospital 
+      },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Hospital profile creation error:", error);
+    console.error("Hospital registration error:", error);
     return NextResponse.json(
-      { error: "Failed to create hospital profile" },
+      { error: "Failed to register hospital" },
       { status: 500 }
     );
   }

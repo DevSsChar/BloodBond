@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Heart, TriangleAlert, Activity, CheckCircle } from "lucide-react";
 
 export default function Home() {
@@ -33,16 +34,16 @@ export default function Home() {
               
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto pt-2">
-                <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-[#ef4444] hover:bg-gray-100 
+                <Link href="/emergency" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-[#ef4444] hover:bg-gray-100 
                   font-medium sm:font-semibold px-4 sm:px-5 md:px-6 lg:px-8 py-3 md:py-3.5 rounded-2xl transition-all">
                   <TriangleAlert className="mr-1 md:mr-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
                   Request Emergency Blood
-                </button>
-                <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white text-white 
+                </Link>
+                <Link href="/register" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white text-white 
                   hover:bg-white hover:text-[#ef4444] font-medium sm:font-semibold px-4 sm:px-5 md:px-6 lg:px-8 py-3 md:py-3.5 rounded-2xl transition-all">
                   <Heart className="mr-1 md:mr-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
                   Become a Donor
-                </button>
+                </Link>
               </div>
               
               {/* Stats */}

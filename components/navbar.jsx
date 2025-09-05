@@ -27,10 +27,35 @@ const Navbar = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [dbRegistrationStatus, setDbRegistrationStatus] = useState(null);
   const { data: session, status } = useSession();
-  const { userRole, loading: roleLoading, hasRole, isDonor, isBloodBank, isHospital } = useUserRole();
+  const { userRole, loading: roleLoading, hasRole, isDonor, isBloodBank, isHospital, isRegistrationComplete } = useUserRole();
   
   const profileRef = useRef(null);
+
+  // Check database directly if session shows incomplete registration but user has a role
+  useEffect(() => {
+    const checkDatabaseStatus = async () => {
+      if (session && hasRole && !isRegistrationComplete && dbRegistrationStatus === null) {
+        try {
+          console.log('Navbar - Checking database for registration status...');
+          const response = await fetch('/api/users/status');
+          if (response.ok) {
+            const result = await response.json();
+            setDbRegistrationStatus(result.user?.isRegistrationComplete || false);
+            console.log('Navbar - Database registration status:', result.user?.isRegistrationComplete);
+          }
+        } catch (error) {
+          console.error('Navbar - Failed to check database status:', error);
+        }
+      }
+    };
+
+    checkDatabaseStatus();
+  }, [session, hasRole, isRegistrationComplete, dbRegistrationStatus]);
+
+  // Use database status if available, otherwise fall back to session
+  const effectiveRegistrationComplete = dbRegistrationStatus !== null ? dbRegistrationStatus : isRegistrationComplete;
 
   // Handle clicks outside of profile dropdown
   useEffect(() => {
@@ -52,7 +77,8 @@ const Navbar = () => {
     setIsProfileOpen(!isProfileOpen);
   };
   
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Don't clear role on logout - preserve user's chosen role
     signOut();
     setIsProfileOpen(false);
   };
@@ -79,29 +105,61 @@ const Navbar = () => {
   const getRoleSpecificNavItems = () => {
     if (!session) return [];
     
+    // Debug: Add debug info to the navigation
+    if (process.env.NODE_ENV === 'development') {
+      console.log('DEBUG Navbar - hasRole:', hasRole, 'userRole:', userRole, 'sessionRegistrationComplete:', isRegistrationComplete, 'dbRegistrationComplete:', dbRegistrationStatus, 'effectiveRegistrationComplete:', effectiveRegistrationComplete);
+    }
+    
+    // Only show role selection if user has no role
     if (!hasRole) {
       return [
         { href: '/register', icon: Users, label: 'Select Role', active: false }
       ];
     }
 
+    // If user has role but registration not complete, show registration link
+    if (hasRole && !effectiveRegistrationComplete) {
+      let registrationPath = '/register';
+      switch (userRole) {
+        case 'user':
+          registrationPath = '/register/donor';
+          break;
+        case 'bloodbank_admin':
+          registrationPath = '/register/bloodbank';
+          break;
+        case 'hospital':
+          registrationPath = '/register/hospital';
+          break;
+      }
+      return [
+        { href: registrationPath, icon: Users, label: 'Complete Registration', active: false }
+      ];
+    }
+
+    // Only show full navigation after registration is complete
+    if (!effectiveRegistrationComplete) {
+      return [];
+    }
+
     const items = [];
     
-    // Add emergency for all roles
-    items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: false });
-
-    // Role-specific items
+    // Role-specific items (only after registration is complete)
     if (isDonor) {
+      // Add emergency for donors
+      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: false });
       items.push(
         { href: '/donate', icon: Droplet, label: 'Donate Blood', active: false },
         { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: false }
       );
     } else if (isBloodBank) {
       items.push(
+        { href: '/requests', icon: TriangleAlert, label: 'Blood Requests', active: false },
         { href: '/inventory', icon: Building, label: 'Blood Inventory', active: false },
         { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: false }
       );
     } else if (isHospital) {
+      // Add emergency for hospitals
+      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: false });
       items.push(
         { href: '/requests', icon: Hospital, label: 'Blood Requests', active: false },
         { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: false }
