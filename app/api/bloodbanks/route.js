@@ -1,51 +1,53 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
-import BloodBank from "@/models/BloodBank";
-import User from "@/models/User";
+import connectDB from "@/db/connectDB";
+import BloodBank from "@/model/BloodBank";
+import User from "@/model/user";
+import bcrypt from "bcrypt";
 
 export async function POST(req) {
   await connectDB();
 
   try {
     const body = await req.json();
-    const { user_id, name, address, latitude, longitude, contact_number } = body;
+    const { name, address, latitude, longitude, contact_number, email, role } = body;
 
     // Validate required fields
-    if (!user_id || !name || !address || !latitude || !longitude || !contact_number) {
+    if (!name || !address || !latitude || !longitude || !contact_number || !email) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Verify user exists and has bloodbank_admin role
-    const user = await User.findById(user_id);
-    if (!user) {
+    // Check if user already exists
+    const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
       return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    if (user.role !== "bloodbank_admin") {
-      return NextResponse.json(
-        { error: "User is not registered as a blood bank administrator" },
-        { status: 403 }
-      );
-    }
-
-    // Check if blood bank already exists for this user
-    const existingBloodBank = await BloodBank.findOne({ user_id });
-    if (existingBloodBank) {
-      return NextResponse.json(
-        { error: "Blood bank already exists for this user" },
+        { error: "Email already registered" },
         { status: 409 }
       );
     }
 
+    const existingUserByMobile = await User.findOne({ mobile_number: contact_number });
+    if (existingUserByMobile) {
+      return NextResponse.json(
+        { error: "Contact number already registered" },
+        { status: 409 }
+      );
+    }
+
+    // Create new user first
+    const newUser = await User.create({
+      name,
+      mobile_number: contact_number,
+      email,
+      password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
+      role: 'bloodbank_admin'
+    });
+
     // Create new blood bank
     const newBloodBank = await BloodBank.create({
-      user_id,
+      user_id: newUser._id,
       name,
       address,
       latitude,

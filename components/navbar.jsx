@@ -15,15 +15,20 @@ import {
   X,
   LogIn,
   UserCircle,
-  LogOut
+  LogOut,
+  Building,
+  Hospital,
+  Droplet
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Navbar = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { data: session, status } = useSession();
+  const { userRole, loading: roleLoading, hasRole, isDonor, isBloodBank, isHospital } = useUserRole();
   
   const profileRef = useRef(null);
 
@@ -52,7 +57,61 @@ const Navbar = () => {
     setIsProfileOpen(false);
   };
 
-  const isLoading = status === "loading";
+  const isLoading = status === "loading" || roleLoading;
+
+  // Helper function to get role-specific dashboard link
+  const getDashboardLink = () => {
+    if (!hasRole) return '/register';
+    
+    switch (userRole) {
+      case 'user':
+        return '/dashboard/donor';
+      case 'bloodbank_admin':
+        return '/dashboard/bloodbank';
+      case 'hospital':
+        return '/dashboard/hospital';
+      default:
+        return '/dashboard';
+    }
+  };
+
+  // Helper function to get role-specific navigation items
+  const getRoleSpecificNavItems = () => {
+    if (!session) return [];
+    
+    if (!hasRole) {
+      return [
+        { href: '/register', icon: Users, label: 'Select Role', active: false }
+      ];
+    }
+
+    const items = [];
+    
+    // Add emergency for all roles
+    items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: false });
+
+    // Role-specific items
+    if (isDonor) {
+      items.push(
+        { href: '/donate', icon: Droplet, label: 'Donate Blood', active: false },
+        { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: false }
+      );
+    } else if (isBloodBank) {
+      items.push(
+        { href: '/inventory', icon: Building, label: 'Blood Inventory', active: false },
+        { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: false }
+      );
+    } else if (isHospital) {
+      items.push(
+        { href: '/requests', icon: Hospital, label: 'Blood Requests', active: false },
+        { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: false }
+      );
+    }
+
+    return items;
+  };
+
+  const navItems = getRoleSpecificNavItems();
 
   return (
     <header className="bg-[var(--card-background)] border-b border-[var(--border-color)] sticky top-0 z-50 w-full shadow-sm transition-colors duration-200">
@@ -69,55 +128,43 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1 xl:space-x-6">
             {/* Home - Active state */}
-            <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[#ef4444] bg-[#ef4444]/5 transition-colors">
-              <Heart className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-              <span>Home</span>
-            </button>
+            <Link href="/">
+              <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[#ef4444] bg-[#ef4444]/5 transition-colors">
+                <Heart className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+                <span>Home</span>
+              </button>
+            </Link>
             
-            {/* Emergency nav item */}
-            <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-              <span>Emergency</span>
-            </button>
-            
-            {/* Register */}
-            <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <Users className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-              <span>Register</span>
-            </button>
-            
-            {/* Dashboard */}
-            <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <Activity className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-              <span>Dashboard</span>
-            </button>
+            {/* Role-based navigation items */}
+            {navItems.map((item, index) => (
+              <Link key={index} href={item.href}>
+                <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
+                  <item.icon className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              </Link>
+            ))}
           </nav>
 
           {/* Medium navigation (tablet) */}
           <nav className="hidden md:flex lg:hidden items-center">
             {/* Home - Active state */}
-            <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <Heart className="w-5 h-5" aria-hidden="true" />
-              <span className="sr-only">Home</span>
-            </button>
+            <Link href="/">
+              <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
+                <Heart className="w-5 h-5" aria-hidden="true" />
+                <span className="sr-only">Home</span>
+              </button>
+            </Link>
             
-            {/* Emergency nav item */}
-            <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <TriangleAlert className="w-5 h-5" aria-hidden="true" />
-              <span className="sr-only">Emergency</span>
-            </button>
-            
-            {/* Register */}
-            <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <Users className="w-5 h-5" aria-hidden="true" />
-              <span className="sr-only">Register</span>
-            </button>
-            
-            {/* Dashboard */}
-            <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
-              <Activity className="w-5 h-5" aria-hidden="true" />
-              <span className="sr-only">Dashboard</span>
-            </button>
+            {/* Role-based navigation items */}
+            {navItems.map((item, index) => (
+              <Link key={index} href={item.href}>
+                <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
+                  <item.icon className="w-5 h-5" aria-hidden="true" />
+                  <span className="sr-only">{item.label}</span>
+                </button>
+              </Link>
+            ))}
           </nav>
 
           {/* Right side actions */}
@@ -209,31 +256,28 @@ const Navbar = () => {
         <div className="md:hidden border-t border-[var(--border-color)] bg-[var(--card-background)] transition-colors duration-200">
           <div className="container mx-auto px-4 py-3">
             <nav className="flex flex-col space-y-2">
-              <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[#ef4444] bg-[#ef4444]/5">
-                <Heart className="w-5 h-5" aria-hidden="true" />
-                <span>Home</span>
-              </button>
+              <Link href="/">
+                <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[#ef4444] bg-[#ef4444]/5 w-full text-left">
+                  <Heart className="w-5 h-5" aria-hidden="true" />
+                  <span>Home</span>
+                </button>
+              </Link>
               
-              <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5">
-                <TriangleAlert className="w-5 h-5" aria-hidden="true" />
-                <span>Emergency</span>
-              </button>
-              
-              <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5">
-                <Users className="w-5 h-5" aria-hidden="true" />
-                <span>Register</span>
-              </button>
-              
-              <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5">
-                <Activity className="w-5 h-5" aria-hidden="true" />
-                <span>Dashboard</span>
-              </button>
+              {/* Role-based navigation items */}
+              {navItems.map((item, index) => (
+                <Link key={index} href={item.href}>
+                  <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 w-full text-left">
+                    <item.icon className="w-5 h-5" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </button>
+                </Link>
+              ))}
               
               {/* User or Login button in mobile menu */}
               {session ? (
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5"
+                  className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 w-full text-left"
                 >
                   <LogOut className="w-5 h-5" aria-hidden="true" />
                   <span>Sign Out ({session.user?.name || "Account"})</span>

@@ -1,51 +1,53 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
-import HospitalProfile from "@/models/HospitalProfile";
-import User from "@/models/User";
+import connectDB from "@/db/connectDB";
+import HospitalProfile from "@/model/HospitalProfile";
+import User from "@/model/user";
+import bcrypt from "bcrypt";
 
 export async function POST(req) {
   await connectDB();
 
   try {
     const body = await req.json();
-    const { user_id, name, address, latitude, longitude, contact_number } = body;
+    const { name, address, latitude, longitude, contact_number, email, role } = body;
 
     // Validate required fields
-    if (!user_id || !name || !address || !latitude || !longitude || !contact_number) {
+    if (!name || !address || !latitude || !longitude || !contact_number || !email) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Verify user exists and has hospital role
-    const user = await User.findById(user_id);
-    if (!user) {
+    // Check if user already exists
+    const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
       return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    if (user.role !== "hospital") {
-      return NextResponse.json(
-        { error: "User is not registered as a hospital" },
-        { status: 403 }
-      );
-    }
-
-    // Check if profile already exists
-    const existingProfile = await HospitalProfile.findOne({ user_id });
-    if (existingProfile) {
-      return NextResponse.json(
-        { error: "Hospital profile already exists for this user" },
+        { error: "Email already registered" },
         { status: 409 }
       );
     }
 
+    const existingUserByMobile = await User.findOne({ mobile_number: contact_number });
+    if (existingUserByMobile) {
+      return NextResponse.json(
+        { error: "Contact number already registered" },
+        { status: 409 }
+      );
+    }
+
+    // Create new user first
+    const newUser = await User.create({
+      name,
+      mobile_number: contact_number,
+      email,
+      password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
+      role: 'hospital'
+    });
+
     // Create new hospital profile
     const newProfile = await HospitalProfile.create({
-      user_id,
+      user_id: newUser._id,
       name,
       address,
       latitude,

@@ -96,9 +96,13 @@ export const authOptions = {
             lastLoginDate: new Date(),
           },
           // Only set this when creating a new user
-        //   $setOnInsert: {
-        //     password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
-        //   },
+          $setOnInsert: {
+            email: email,
+            name: user?.name || profile?.name || profile?.login || email.split('@')[0],
+            mobile_number: '', // Will be filled during registration
+            password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // Random password for OAuth users
+            role: null // Will be set during role selection
+          },
         },
         { upsert: true, new: true }
       );
@@ -109,16 +113,46 @@ export const authOptions = {
       return true;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.userId = user.id;
+        // Fetch user role from database
+        try {
+          await connectDB();
+          const dbUser = await User.findById(user.id);
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.name = dbUser.name;
+          }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+        }
       }
+      
+      // If session is being updated (e.g., after role selection), refresh user data
+      if (trigger === "update" && token.userId) {
+        try {
+          await connectDB();
+          const dbUser = await User.findById(token.userId);
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.name = dbUser.name;
+          }
+        } catch (error) {
+          console.error("Error refreshing user data:", error);
+        }
+      }
+      
       return token;
     },
 
     async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.userId;
+        session.user.role = token.role;
+        if (token.name) {
+          session.user.name = token.name;
+        }
       }
       return session;
     },

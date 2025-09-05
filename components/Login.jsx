@@ -9,11 +9,11 @@ const LoginPage = () => {
   const router = useRouter();
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn('google', { callbackUrl: '/register' });
   };
 
   const handleGithubSignIn = () => {
-    signIn('github', { callbackUrl: '/dashboard' });
+    signIn('github', { callbackUrl: '/register' });
   };
 
   return (
