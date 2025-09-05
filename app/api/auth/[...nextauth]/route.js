@@ -4,7 +4,8 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
 
-import connectDB from "@/db/connectDB";
+// Use explicit .mjs to avoid dual module instances (prevents duplicate mongoose models / stale reads)
+import connectDB from "@/db/connectDB.mjs";
 import User from "@/model/user";
 
 export const authOptions = {

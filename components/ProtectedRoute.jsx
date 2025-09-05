@@ -146,6 +146,28 @@ const ProtectedRoute = ({ children, allowedRoles = [], requiresRole = true, requ
     }
   }, [session, status, userRole, hasRole, isRegistrationComplete, dbRegistrationComplete, roleLoading, router, allowedRoles, requiresRole, requiresRegistration, dbChecking]);
 
+  // Add this inside the component, after the useEffect for checking database
+  useEffect(() => {
+    // If user has localStorage flag for completed registration, redirect to dashboard
+    const registrationCompleted = localStorage.getItem('registrationCompleted');
+    const storedRole = localStorage.getItem('userRole');
+    
+    if (registrationCompleted === 'true' && storedRole) {
+      console.log("Registration completed flag found in localStorage, redirecting to dashboard");
+      
+      // Clear the flag after using it
+      localStorage.removeItem('registrationCompleted');
+      
+      // Redirect to appropriate dashboard based on stored role
+      let dashboardPath = '/dashboard';
+      if (storedRole === 'user') dashboardPath = '/dashboard/donor';
+      if (storedRole === 'hospital') dashboardPath = '/dashboard/hospital';
+      if (storedRole === 'bloodbank_admin') dashboardPath = '/dashboard/bloodbank';
+      
+      router.push(dashboardPath);
+    }
+  }, [router]);
+
   // Show loading while checking authentication and role
   if (status === 'loading' || roleLoading || dbChecking) {
     return (

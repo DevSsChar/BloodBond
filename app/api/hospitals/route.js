@@ -8,109 +8,71 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    // Get the JWT token to identify the current user
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    
-    if (!token || !token.userId) {
-      return NextResponse.json(
-        { error: "Unauthorized - No valid session" },
-        { status: 401 }
-      );
+    if (!token) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { name, address, latitude, longitude, contact_number } = body;
-
-    console.log("Hospital registration for user ID:", token.userId);
-
-    // Validate required fields
-    if (!name || !address || !latitude || !longitude || !contact_number) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+    // Accept either custom token.userId (our jwt callback) or default NextAuth token.sub
+    const userId = token.userId || token.sub;
+    if (!userId) {
+      console.error("Hospital registration: Missing userId in token", token);
+      return Response.json({ error: 'Unauthorized - No user id' }, { status: 401 });
     }
 
-    // Find the existing user
-    const user = await User.findById(token.userId);
+    // Extract data from form
+    const data = await req.json();
+    console.log("Hospital registration token:", { userId, tokenUserId: token.userId, tokenSub: token.sub });
+    console.log("Hospital registration payload:", data);
+
+    // Load user then set registration complete (avoid silent no-op if userId invalid)
+    let user = await User.findById(userId);
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      console.error("Hospital registration: User not found with ID:", userId);
+      return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Verify user has the correct role
-    if (user.role !== 'hospital') {
-      return NextResponse.json(
-        { error: "Invalid role for hospital registration" },
-        { status: 403 }
-      );
+    const wasComplete = user.isRegistrationComplete;
+    if (!user.isRegistrationComplete) {
+      user.isRegistrationComplete = true;
+      await user.save();
     }
 
-    // Update user profile with basic information only
-    const updatedUser = await User.findByIdAndUpdate(
-      token.userId,
-      { 
-        name,
-        isRegistrationComplete: true // Mark registration as complete
-        // Don't update mobile_number in User model - it goes to Hospital model
-      },
-      { new: true }
-    );
+    console.log("Hospital registration: User completion status -> before:", wasComplete, "after:", user.isRegistrationComplete);
 
-    // Create or update hospital profile
-    const existingHospital = await HospitalProfile.findOne({ user_id: token.userId });
-    let hospital;
-    
-    if (existingHospital) {
-      hospital = await HospitalProfile.findByIdAndUpdate(
-        existingHospital._id,
-        {
-          name,
-          address,
-          latitude,
-          longitude,
-          contact_number,
-        },
-        { new: true }
-      );
+    // Ensure we don't create duplicate profile (idempotent check)
+    let existingProfile = await HospitalProfile.findOne({ user_id: user._id });
+    if (existingProfile) {
+      console.log("Hospital registration: Existing profile found, updating", existingProfile._id);
+      existingProfile.name = data.name ?? existingProfile.name;
+      existingProfile.address = data.address ?? existingProfile.address;
+      if (data.latitude) existingProfile.latitude = parseFloat(data.latitude);
+      if (data.longitude) existingProfile.longitude = parseFloat(data.longitude);
+      existingProfile.contact_number = data.contact_number ?? existingProfile.contact_number;
+      await existingProfile.save();
     } else {
-      hospital = await HospitalProfile.create({
-        user_id: token.userId,
-        name,
-        address,
-        latitude,
-        longitude,
-        contact_number,
+      existingProfile = await HospitalProfile.create({
+        user_id: user._id,
+        name: data.name,
+        address: data.address,
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        contact_number: data.contact_number
       });
+      console.log("Hospital registration: New hospital profile created:", existingProfile._id);
     }
 
-    console.log("Hospital registration completed:", {
-      userId: updatedUser._id,
-      registrationComplete: updatedUser.isRegistrationComplete
+    // Echo back definitive state from DB
+    return Response.json({
+      success: true,
+      message: 'Hospital profile saved',
+      isRegistrationComplete: user.isRegistrationComplete,
+      profileId: existingProfile._id
     });
 
-    return NextResponse.json(
-      { 
-        message: "Hospital registered successfully", 
-        user: {
-          id: updatedUser._id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          role: updatedUser.role,
-          isRegistrationComplete: updatedUser.isRegistrationComplete
-        },
-        hospital: hospital 
-      },
-      { status: 201 }
-    );
   } catch (error) {
     console.error("Hospital registration error:", error);
-    return NextResponse.json(
-      { error: "Failed to register hospital" },
-      { status: 500 }
-    );
+    return Response.json({ error: 'Failed to create hospital profile', details: error.message }, { status: 500 });
   }
 }
 

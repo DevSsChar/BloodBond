@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Heart, MapPin, Phone, Mail, User, Building, Calendar, Droplet, Users } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 // Geolocation Hook
 const useGeolocation = () => {
@@ -553,52 +554,21 @@ const RegistrationForm = ({ role }) => {
       console.log('Response:', response.status, result);
 
       if (response.ok) {
-        console.log('Registration successful!', result);
-        // Mark completion locally immediately to avoid UI loop while we sync session
-        try {
-          localStorage.setItem('registrationComplete', 'true');
-        } catch (e) {
-          console.warn('Could not write registrationComplete to localStorage');
-        }
-
-        // Poll backend status until it reflects completion to avoid stale session token
-        const pollStatus = async (attempt = 1) => {
-          try {
-            const statusRes = await fetch('/api/users/status', { cache: 'no-store' });
-            if (statusRes.ok) {
-              const statusJson = await statusRes.json();
-              console.log('Status poll attempt', attempt, statusJson);
-              if (statusJson?.user?.isRegistrationComplete) {
-                return true;
-              }
-            }
-          } catch (e) {
-            console.warn('Status poll failed attempt', attempt, e);
-          }
-          if (attempt < 5) {
-            await new Promise(r => setTimeout(r, 400 * attempt));
-            return pollStatus(attempt + 1);
-          }
-          return false;
-        };
-
-        const backendSynced = await pollStatus();
-        if (!backendSynced) {
-          console.warn('Backend did not confirm registration completion after polling – proceeding anyway');
-        }
-
-        alert('Registration completed! Redirecting to your dashboard...');
-
-        // Prefer router.replace so history does not keep the form
-        const dashboardPath = role === 'user' ? '/dashboard/donor' : 
-                              role === 'bloodbank_admin' ? '/dashboard/bloodbank' : 
-                              '/dashboard/hospital';
-        try {
-          // Force a session refetch (triggers JWT refresh due to false->true transition)
-          await fetch('/api/auth/session?update=1', { cache: 'no-store' }).catch(()=>{});
-        } catch {}
-        // Navigate
-        router.replace(dashboardPath);
+        console.log("Registration successful!");
+        toast.success('Registration successful!');
+        
+        // Set flag and force complete page reload to dashboard
+        localStorage.setItem('registrationCompleted', 'true');
+        localStorage.setItem('userRole', role);
+        
+        // Small delay to ensure database update completes
+        setTimeout(() => {
+          window.location.href = role === 'user' ? '/dashboard/donor' : 
+                            role === 'bloodbank_admin' ? '/dashboard/bloodbank' : 
+                            '/dashboard/hospital';
+        }, 500);
+        
+        return;
       } else {
         console.error('Registration failed:', result);
         alert(`Registration failed: ${result.error || 'Unknown error'}`);
@@ -620,31 +590,28 @@ const RegistrationForm = ({ role }) => {
       case 'hospital':
         return <HospitalForm onSubmit={handleSubmit} loading={loading} />;
       default:
-        return <div>Invalid role</div>;
+        return null;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4 sm:p-6">
-      <div className="w-full max-w-2xl space-y-8 bg-[var(--card-background)] p-6 sm:p-8 rounded-xl shadow-md border border-[var(--border-color)] transition-colors duration-200">
-        {/* Header */}
-        <div className="text-center">
-          <div className="flex items-center justify-center space-x-2 mb-6">
-            <Heart className="h-8 w-8 text-[#ef4444]" aria-hidden="true" />
-            <h1 className="font-heading text-3xl font-bold text-[#ef4444]">BloodBond</h1>
-          </div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{getRoleTitle()}</h2>
-          <p className="text-[var(--text-secondary)]">
-            Please fill out all the required information
-          </p>
-        </div>
-
-        {/* Form */}
-        {renderForm()}
+    <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <h2 className="text-2xl font-extrabold text-center text-[var(--text-primary)] mb-8">
+        {getRoleTitle()}
+      </h2>
+      
+      {renderForm()}
+      
+      <div className="mt-8 text-center">
+        <p className="text-sm text-[var(--text-secondary)]">
+          Already registered?{' '}
+          <a href="/login" className="text-[#ef4444] font-medium">
+            Login here
+          </a>
+        </p>
       </div>
     </div>
   );
 };
 
-export { RegistrationForm, DonorForm, BloodBankForm, HospitalForm };
 export default RegistrationForm;

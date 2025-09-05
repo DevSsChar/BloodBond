@@ -7,20 +7,35 @@ export async function GET(req) {
   try {
     // Get the JWT token from the request
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    
-    if (!token || !token.userId) {
+
+    if (!token) {
       return NextResponse.json(
         { error: "Unauthorized - No valid session" },
         { status: 401 }
       );
     }
+    // Support either our custom userId or default .sub
+    const userId = token.userId || token.sub;
+    if (!userId) {
+      console.warn("Status route: token present but missing userId/sub", token);
+      return NextResponse.json(
+        { error: "Unauthorized - No user id in token" },
+        { status: 401 }
+      );
+    }
 
-    console.log("Fetching current user status for user ID:", token.userId);
+    console.log("[users/status] Fetching user status", {
+      userId,
+      tokenUserId: token.userId,
+      tokenSub: token.sub,
+      tokenRole: token.role,
+      tokenIsReg: token.isRegistrationComplete
+    });
 
     await connectDB();
 
     // Find user in database
-    const user = await User.findById(token.userId);
+  const user = await User.findById(userId);
     
     if (!user) {
       console.log("User not found with ID:", token.userId);
@@ -30,11 +45,12 @@ export async function GET(req) {
       );
     }
 
-    console.log("Current user status:", {
-      id: user._id,
+    console.log("[users/status] DB user doc:", {
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
-      isRegistrationComplete: user.isRegistrationComplete
+      isRegistrationComplete: user.isRegistrationComplete,
+      updatedAt: user.updatedAt
     });
 
     return NextResponse.json(
