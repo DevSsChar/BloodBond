@@ -3,6 +3,7 @@
 import { useTheme } from "@/context/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useRequestStatus } from "@/hooks/useRequestStatus";
+import { useEmergencyRequestCheck } from "@/hooks/useEmergencyRequestCheck";
 import useEmergencyNotifications from "@/hooks/useEmergencyNotifications";
 import {
   Activity,
@@ -33,6 +34,7 @@ const Navbar = () => {
   const { data: session, status } = useSession();
   const { userRole, loading: roleLoading, hasRole, isDonor, isBloodBank, isHospital, isRegistrationComplete } = useUserRole();
   const { pendingRequests } = useRequestStatus();
+  const { hasEmergencyRequest } = useEmergencyRequestCheck();
   const pathname = usePathname();
   
   // Initialize emergency notifications for blood bank admins
@@ -154,7 +156,6 @@ const Navbar = () => {
     if (isDonor) {
       items.push(
         { href: '/donate', icon: Droplet, label: 'Donate Blood', active: pathname === '/donate' },
-        { href: '/emergency', icon: TriangleAlert, label: 'Emergency Request', active: pathname === '/emergency' },
         { href: '/my-requests', icon: TriangleAlert, label: 'My Requests', active: pathname === '/my-requests' },
         { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: pathname === '/dashboard/donor' }
       );
@@ -265,8 +266,8 @@ const Navbar = () => {
               </button>
             </Link>
 
-            {/* Track Status - Available to all users except blood banks */}
-            {!isBloodBank && (
+            {/* Track Status - Available to donors who have made emergency requests, hospitals, and other non-blood bank users */}
+            {(!isBloodBank && (!isDonor || (isDonor && hasEmergencyRequest))) && (
               <Link href="/track-request">
                 <button className={`flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
                   pathname === '/track-request' 
@@ -303,8 +304,8 @@ const Navbar = () => {
               </button>
             </Link>
 
-            {/* Track Status - Available to all users except blood banks */}
-            {!isBloodBank && (
+            {/* Track Status - Available to donors who have made emergency requests, hospitals, and other non-blood bank users */}
+            {(!isBloodBank && (!isDonor || (isDonor && hasEmergencyRequest))) && (
               <Link href="/track-request">
                 <button className={`flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
                   pathname === '/track-request' 
@@ -383,13 +384,15 @@ const Navbar = () => {
               </Link>
             )}
 
-            {/* Emergency CTA button */}
-            <Link href="/emergency">
-              <button className="hidden sm:flex items-center justify-center gap-1.5 px-3 md:px-4 lg:px-5 py-2 lg:py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-sm lg:text-base transition-colors">
-                <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-                <span>Emergency</span>
-              </button>
-            </Link>
+            {/* Emergency CTA button - Not shown to donors */}
+            {!isDonor && (
+              <Link href="/emergency">
+                <button className="hidden sm:flex items-center justify-center gap-1.5 px-3 md:px-4 lg:px-5 py-2 lg:py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-sm lg:text-base transition-colors">
+                  <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+                  <span>Emergency</span>
+                </button>
+              </Link>
+            )}
 
             {/* Mobile menu button */}
             <button 
@@ -423,8 +426,8 @@ const Navbar = () => {
                 </button>
               </Link>
 
-              {/* Track Status - Available to all users except blood banks */}
-              {!isBloodBank && (
+              {/* Track Status - Available to donors who have made emergency requests, hospitals, and other non-blood bank users */}
+              {(!isBloodBank && (!isDonor || (isDonor && hasEmergencyRequest))) && (
                 <Link href="/track-request">
                   <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
                     pathname === '/track-request' 
@@ -460,12 +463,15 @@ const Navbar = () => {
                 </Link>
               )}
 
-              <Link href="/emergency">
-                <button className="flex items-center justify-center gap-2 mt-2 px-5 py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-base">
-                  <TriangleAlert className="w-5 h-5" aria-hidden="true" />
-                  <span>Emergency</span>
-                </button>
-              </Link>
+              {/* Emergency button in mobile menu - Not shown to donors */}
+              {!isDonor && (
+                <Link href="/emergency">
+                  <button className="flex items-center justify-center gap-2 mt-2 px-5 py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-base">
+                    <TriangleAlert className="w-5 h-5" aria-hidden="true" />
+                    <span>Emergency</span>
+                  </button>
+                </Link>
+              )}
             </nav>
           </div>
         </div>

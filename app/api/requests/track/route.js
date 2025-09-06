@@ -13,6 +13,7 @@ export async function GET(req) {
     const email = searchParams.get("email");
     const id = searchParams.get("id");
     const userOnly = searchParams.get("userOnly") === "true"; // Flag to get only user's requests
+    const checkEmergency = searchParams.get("checkEmergency") === "true"; // Flag to check if user has emergency requests
     
     // Get JWT token to check if user is authenticated
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -60,6 +61,33 @@ export async function GET(req) {
           message: activeRequests.length > 0 ? 'Showing your active requests' : 'No active requests found'
         }, { status: 200 });
       }
+    }
+
+    // Quick emergency check for navbar
+    if (checkEmergency && email) {
+      const user = await User.findOne({ email: email.toLowerCase() });
+      
+      let emergencyQuery = {};
+      if (user) {
+        // User exists, check their requests
+        emergencyQuery.$or = [
+          { requested_by_user: user._id, request_type: 'emergency' },
+          { requested_by_hospital: user._id, request_type: 'emergency' },
+          { emergency_requester_email: email.toLowerCase(), request_type: 'emergency' }
+        ];
+      } else {
+        // No user found, check emergency requests only
+        emergencyQuery = {
+          emergency_requester_email: email.toLowerCase(),
+          request_type: 'emergency'
+        };
+      }
+      
+      const emergencyRequests = await BloodRequest.find(emergencyQuery);
+      return NextResponse.json({ 
+        requests: emergencyRequests,
+        hasEmergencyRequests: emergencyRequests.length > 0
+      }, { status: 200 });
     }
     
     // Search logic for manual email/ID search
