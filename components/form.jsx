@@ -46,23 +46,39 @@ const DonorForm = ({ onSubmit, loading }) => {
   const [formData, setFormData] = useState({
     name: session?.user?.name || '',
     age: '',
+    weight: '',
     blood_type: '',
     mobile_number: '',
     email: session?.user?.email || '',
     emergency_contact_mobile: ''
   });
+  const [weightError, setWeightError] = useState('');
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Clear weight error when weight is being changed
+    if (name === 'weight') {
+      setWeightError('');
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: value
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate weight
+    if (parseFloat(formData.weight) < 50) {
+      setWeightError('You must weigh at least 50kg to be eligible as a donor.');
+      return;
+    }
+    
     onSubmit(formData);
   };
 
@@ -99,6 +115,27 @@ const DonorForm = ({ onSubmit, loading }) => {
             max="65"
             className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
           />
+        </div>
+        
+        {/* New Weight Field */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+            <Droplet className="inline w-4 h-4 mr-2" />
+            Weight (kg) *
+          </label>
+          <input
+            type="number"
+            name="weight"
+            value={formData.weight}
+            onChange={handleChange}
+            required
+            min="0"
+            step="0.1"
+            className={`w-full px-3 py-2 border ${weightError ? 'border-red-500' : 'border-[var(--border-color)]'} rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]`}
+          />
+          {weightError && (
+            <p className="mt-1 text-red-500 text-sm">{weightError}</p>
+          )}
         </div>
         
         <div>
@@ -164,6 +201,12 @@ const DonorForm = ({ onSubmit, loading }) => {
             className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
           />
         </div>
+      </div>
+
+      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <p className="text-sm text-blue-700">
+          <strong>Note:</strong> To be eligible as a donor, you must weigh at least 50kg for your health and safety.
+        </p>
       </div>
 
       <button
@@ -279,7 +322,7 @@ const BloodBankForm = ({ onSubmit, loading }) => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var,--text-primary)]"
           />
         </div>
         
@@ -428,7 +471,7 @@ const HospitalForm = ({ onSubmit, loading }) => {
             value={formData.contact_number}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var,--text-primary)]"
           />
         </div>
         
@@ -443,7 +486,7 @@ const HospitalForm = ({ onSubmit, loading }) => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var,--text-primary)]"
           />
         </div>
         
@@ -488,7 +531,7 @@ const HospitalForm = ({ onSubmit, loading }) => {
               placeholder="Longitude"
               step="any"
               required
-              className="px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
+              className="px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var,--text-primary)]"
             />
           </div>
         </div>
