@@ -1,8 +1,10 @@
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import "./dark-theme.css";
+import "./chatbot.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import Chatbot from "@/components/Chatbot";
 import { ThemeProvider } from "@/context/ThemeContext";
 import SessionWrapper from "@/components/SessionProvider";
 
@@ -34,6 +36,7 @@ export default function RootLayout({ children }) {
               {children}
             </main>
             <Footer />
+            <Chatbot />
           </SessionWrapper>
         </ThemeProvider>
       </body>
