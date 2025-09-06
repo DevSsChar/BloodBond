@@ -10,6 +10,7 @@ const bloodRequestSchema = new mongoose.Schema({
   status: { type: String, enum: ["pending", "accepted", "rejected"], default: "pending" },
   requested_date: { type: Date, default: Date.now },
   fulfilled_date: { type: Date, default: null },
+  rejection_reason: { type: String, default: null },
   emergency_contact_name: { type: String, default: null },
   emergency_contact_mobile: { type: String, default: null },
   // Additional fields for emergency requests

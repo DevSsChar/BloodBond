@@ -2,6 +2,8 @@
 
 import { useTheme } from "@/context/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useRequestStatus } from "@/hooks/useRequestStatus";
+import useEmergencyNotifications from "@/hooks/useEmergencyNotifications";
 import {
   Activity,
   Building,
@@ -30,7 +32,11 @@ const Navbar = () => {
   const [dbRegistrationStatus, setDbRegistrationStatus] = useState(null);
   const { data: session, status } = useSession();
   const { userRole, loading: roleLoading, hasRole, isDonor, isBloodBank, isHospital, isRegistrationComplete } = useUserRole();
+  const { pendingRequests } = useRequestStatus();
   const pathname = usePathname();
+  
+  // Initialize emergency notifications for blood bank admins
+  useEmergencyNotifications();
   
   const profileRef = useRef(null);
 
@@ -148,11 +154,14 @@ const Navbar = () => {
     if (isDonor) {
       items.push(
         { href: '/donate', icon: Droplet, label: 'Donate Blood', active: pathname === '/donate' },
+        { href: '/emergency', icon: TriangleAlert, label: 'Emergency Request', active: pathname === '/emergency' },
+        { href: '/my-requests', icon: TriangleAlert, label: 'My Requests', active: pathname === '/my-requests' },
         { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: pathname === '/dashboard/donor' }
       );
     } else if (isBloodBank) {
       items.push(
         { href: '/requests', icon: TriangleAlert, label: 'Blood Requests', active: pathname === '/requests' },
+        { href: '/emergency-call', icon: TriangleAlert, label: 'Call Donors', active: pathname === '/emergency-call' },
         { href: '/inventory', icon: Building, label: 'Blood Inventory', active: pathname === '/inventory' },
         { href: '/donors', icon: Users, label: 'View Donors', active: pathname === '/donors' },
         { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: pathname === '/dashboard/bloodbank' }
@@ -167,7 +176,68 @@ const Navbar = () => {
     return items;
   };
 
+  // Helper function to render nav item with optional badge
+  const renderNavItem = (item, className = '') => (
+    <Link key={item.href} href={item.href}>
+      <button className={className}>
+        <div className="relative flex items-center space-x-1.5">
+          <item.icon className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+          <span>{item.label}</span>
+          {/* Show notification badge for My Requests if user has pending requests */}
+          {item.href === '/my-requests' && pendingRequests > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              {pendingRequests > 9 ? '9+' : pendingRequests}
+            </span>
+          )}
+        </div>
+      </button>
+    </Link>
+  );
+
+  // Helper function to render nav item with optional badge for mobile
+  const renderMobileNavItem = (item) => (
+    <Link key={item.href} href={item.href}>
+      <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
+        item.active 
+          ? 'text-[#ef4444] bg-[#ef4444]/5' 
+          : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+      }`}>
+        <div className="relative flex items-center space-x-3 w-full">
+          <item.icon className="w-5 h-5" aria-hidden="true" />
+          <span>{item.label}</span>
+          {/* Show notification badge for My Requests if user has pending requests */}
+          {item.href === '/my-requests' && pendingRequests > 0 && (
+            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-auto">
+              {pendingRequests > 9 ? '9+' : pendingRequests}
+            </span>
+          )}
+        </div>
+      </button>
+    </Link>
+  );
+
+  // Helper function to render nav item with optional badge for medium/tablet (icon-only)
+  const renderMediumNavItem = (item) => (
+    <Link key={item.href} href={item.href}>
+      <button className={`relative flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
+        item.active 
+          ? 'text-[#ef4444] bg-[#ef4444]/5' 
+          : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+      }`}>
+        <item.icon className="w-5 h-5" aria-hidden="true" />
+        <span className="sr-only">{item.label}</span>
+        {/* Show notification badge for My Requests if user has pending requests */}
+        {item.href === '/my-requests' && pendingRequests > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+            {pendingRequests > 9 ? '9+' : pendingRequests}
+          </span>
+        )}
+      </button>
+    </Link>
+  );
+
   const navItems = getRoleSpecificNavItems();
+
 
   return (
     <header className="bg-[var(--card-background)] border-b border-[var(--border-color)] sticky top-0 z-50 w-full shadow-sm transition-colors duration-200">
@@ -195,31 +265,28 @@ const Navbar = () => {
               </button>
             </Link>
 
-            {/* Emergency page */}
-            <Link href="/emergency-page">
-              <button className={`flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
-                pathname === '/emergency-page' 
-                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
-                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
-              }`}>
-                <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-                <span>Emergency</span>
-              </button>
-            </Link>
-            
-            {/* Role-based navigation items */}
-            {navItems.map((item, index) => (
-              <Link key={index} href={item.href}>
+            {/* Track Status - Available to all users except blood banks */}
+            {!isBloodBank && (
+              <Link href="/track-request">
                 <button className={`flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
-                  item.active 
+                  pathname === '/track-request' 
                     ? 'text-[#ef4444] bg-[#ef4444]/5' 
                     : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
                 }`}>
-                  <item.icon className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-                  <span>{item.label}</span>
+                  <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+                  <span>Track Status</span>
                 </button>
               </Link>
-            ))}
+            )}
+            
+            {/* Role-based navigation items */}
+            {navItems.map((item, index) => 
+              renderNavItem(item, `flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
+                item.active 
+                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+              }`)
+            )}
           </nav>
 
           {/* Medium navigation (tablet) */}
@@ -236,31 +303,22 @@ const Navbar = () => {
               </button>
             </Link>
 
-            {/* Emergency page */}
-            <Link href="/emergency-page">
-              <button className={`flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
-                pathname === '/emergency-page' 
-                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
-                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
-              }`}>
-                <TriangleAlert className="w-5 h-5" aria-hidden="true" />
-                <span className="sr-only">Emergency</span>
-              </button>
-            </Link>
-            
-            {/* Role-based navigation items */}
-            {navItems.map((item, index) => (
-              <Link key={index} href={item.href}>
+            {/* Track Status - Available to all users except blood banks */}
+            {!isBloodBank && (
+              <Link href="/track-request">
                 <button className={`flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
-                  item.active 
+                  pathname === '/track-request' 
                     ? 'text-[#ef4444] bg-[#ef4444]/5' 
                     : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
                 }`}>
-                  <item.icon className="w-5 h-5" aria-hidden="true" />
-                  <span className="sr-only">{item.label}</span>
+                  <TriangleAlert className="w-5 h-5" aria-hidden="true" />
+                  <span className="sr-only">Track Status</span>
                 </button>
               </Link>
-            ))}
+            )}
+            
+            {/* Role-based navigation items */}
+            {navItems.map((item, index) => renderMediumNavItem(item))}
           </nav>
 
           {/* Right side actions */}
@@ -365,31 +423,22 @@ const Navbar = () => {
                 </button>
               </Link>
 
-              {/* Emergency page */}
-              <Link href="/emergency-page">
-                <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
-                  pathname === '/emergency-page' 
-                    ? 'text-[#ef4444] bg-[#ef4444]/5' 
-                    : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
-                }`}>
-                  <TriangleAlert className="w-5 h-5" aria-hidden="true" />
-                  <span>Emergency</span>
-                </button>
-              </Link>
-              
-              {/* Role-based navigation items */}
-              {navItems.map((item, index) => (
-                <Link key={index} href={item.href}>
+              {/* Track Status - Available to all users except blood banks */}
+              {!isBloodBank && (
+                <Link href="/track-request">
                   <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
-                    item.active 
+                    pathname === '/track-request' 
                       ? 'text-[#ef4444] bg-[#ef4444]/5' 
                       : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
                   }`}>
-                    <item.icon className="w-5 h-5" aria-hidden="true" />
-                    <span>{item.label}</span>
+                    <TriangleAlert className="w-5 h-5" aria-hidden="true" />
+                    <span>Track Status</span>
                   </button>
                 </Link>
-              ))}
+              )}
+              
+              {/* Role-based navigation items */}
+              {navItems.map((item, index) => renderMobileNavItem(item))}
               
               {/* User or Login button in mobile menu */}
               {session ? (

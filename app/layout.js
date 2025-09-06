@@ -7,6 +7,8 @@ import Footer from "@/components/footer";
 import Chatbot from "@/components/Chatbot";
 import { ThemeProvider } from "@/context/ThemeContext";
 import SessionWrapper from "@/components/SessionProvider";
+import ToastProvider from "@/context/ToastContext";
+import RequestTrackingProvider from "@/context/RequestTrackingContext";
 
 // Load Inter as body font
 const inter = Inter({
@@ -31,12 +33,16 @@ export default function RootLayout({ children }) {
       <body className={`${inter.variable} ${manrope.variable} font-sans bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200`}>
         <ThemeProvider>
           <SessionWrapper>
-            <Navbar />
-            <main className="min-h-screen">
-              {children}
-            </main>
-            <Footer />
-            <Chatbot />
+            <RequestTrackingProvider>
+              <ToastProvider>
+                <Navbar />
+                <main className="min-h-screen">
+                  {children}
+                </main>
+                <Footer />
+                <Chatbot />
+              </ToastProvider>
+            </RequestTrackingProvider>
           </SessionWrapper>
         </ThemeProvider>
       </body>

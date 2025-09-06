@@ -1,13 +1,15 @@
 "use client"
 import Link from 'next/link';
-import { Clock, Loader, MapPin, Navigation, Phone, TriangleAlert, Users } from 'lucide-react';
+import { Clock, Loader, MapPin, Navigation, Phone, TriangleAlert, Users, CheckCircle, UserCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/context/ToastContext';
 
 const EmergencyPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { success, error } = useToast();
   
   const [formData, setFormData] = useState({
     patientName: '',
@@ -36,6 +38,8 @@ const EmergencyPage = () => {
   const [geminiRecommendations, setGeminiRecommendations] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchingBloodBanks, setSearchingBloodBanks] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submittedRequestId, setSubmittedRequestId] = useState('');
 
   // Note: Emergency page accessible to all users (logged in or not)
   // No authentication redirect for emergency situations
@@ -141,13 +145,13 @@ const EmergencyPage = () => {
     e.preventDefault();
     
     if (!selectedBloodBank) {
-      alert('Please select a blood bank first');
+      error('Please select a blood bank first');
       return;
     }
 
     // Validate additional fields for non-logged-in users
     if (!session && (!formData.requesterName || !formData.requesterEmail || !formData.relationToPatient)) {
-      alert('Please fill all requester details');
+      error('Please fill all requester details');
       return;
     }
 
@@ -169,7 +173,13 @@ const EmergencyPage = () => {
       const data = await response.json();
       
       if (data.success) {
-        alert('Emergency request submitted successfully! Request ID: ' + data.requestId);
+        // Store request ID and show success modal
+        setSubmittedRequestId(data.requestId);
+        setShowSuccessModal(true);
+        
+        // Show success toast
+        success('🚨 Emergency request submitted successfully! Blood bank has been notified.');
+        
         // Reset form
         setFormData({
           patientName: '',
@@ -188,14 +198,33 @@ const EmergencyPage = () => {
         setNearbyBloodBanks([]);
         setGeminiRecommendations('');
       } else {
-        alert('Failed to submit request: ' + data.error);
+        error('Failed to submit request: ' + data.error);
       }
-    } catch (error) {
-      console.error('Error submitting request:', error);
-      alert('Failed to submit emergency request');
+    } catch (err) {
+      console.error('Error submitting request:', err);
+      error('Failed to submit emergency request. Please try again.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Handle success modal actions
+  const handleTrackRequest = () => {
+    setShowSuccessModal(false);
+    if (session) {
+      router.push('/my-requests');
+    } else {
+      router.push('/login');
+    }
+  };
+
+  const handleCreateAccount = () => {
+    setShowSuccessModal(false);
+    router.push('/register');
+  };
+
+  const handleStayOnPage = () => {
+    setShowSuccessModal(false);
   };
 
   // Show loading only if session is still loading, but allow access without session
@@ -678,6 +707,76 @@ const EmergencyPage = () => {
           )}
         </div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-xl">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+                Request Submitted Successfully!
+              </h3>
+              <p className="text-[var(--text-secondary)] mb-4">
+                Your emergency blood request has been sent to the blood bank.
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4">
+                <p className="text-sm text-[var(--text-secondary)]">Request ID:</p>
+                <p className="font-mono text-lg font-bold text-[var(--text-primary)]">
+                  {submittedRequestId}
+                </p>
+              </div>
+            </div>
+
+            {session ? (
+              // Logged-in user options
+              <div className="space-y-3">
+                <Link href="/track-request">
+                  <button className="w-full bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2">
+                    <TriangleAlert className="w-4 h-4" />
+                    <span>Track Request Status</span>
+                  </button>
+                </Link>
+                <button
+                  onClick={handleStayOnPage}
+                  className="w-full border border-[var(--border-color)] text-[var(--text-primary)] px-4 py-3 rounded-lg font-medium hover:bg-[var(--card-background)] transition-colors"
+                >
+                  Submit Another Request
+                </button>
+              </div>
+            ) : (
+              // Non-logged-in user options
+              <div className="space-y-3">
+                <div className="text-sm text-[var(--text-secondary)] mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="font-medium text-blue-800 dark:text-blue-200 mb-2">💡 Track Your Request</p>
+                  <p>You can track your request status using the general tracking page!</p>
+                </div>
+                <Link href="/track-request">
+                  <button className="w-full bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2">
+                    <TriangleAlert className="w-4 h-4" />
+                    <span>Track Status</span>
+                  </button>
+                </Link>
+                <button
+                  onClick={handleCreateAccount}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Create Account</span>
+                </button>
+                <button
+                  onClick={handleStayOnPage}
+                  className="w-full border border-[var(--border-color)] text-[var(--text-primary)] px-4 py-3 rounded-lg font-medium hover:bg-[var(--card-background)] transition-colors"
+                >
+                  Continue Without Account
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

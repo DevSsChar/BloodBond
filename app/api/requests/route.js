@@ -4,42 +4,41 @@ import BloodRequest from "@/model/BloodRequest.js";
 import User from "@/model/user.js";
 import BloodBank from "@/model/BloodBank.js";
 import BloodInventory from "@/model/BloodInventory.js";
-import { authenticateRole } from "@/lib/roleAuth.js";
+import { getToken } from "next-auth/jwt";
 
 export async function POST(req) {
-  // Protect route - only hospitals and users can create blood requests
-  const auth = await authenticateRole(req, ['hospital', 'user']);
-  if (!auth.success) {
-    return NextResponse.json(
-      { error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  await connectDB();
-
   try {
+    await connectDB();
+    
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = token.userId || token.sub;
     const body = await req.json();
     const { 
-      user_id,
       blood_type, 
       units_required, 
       bloodbank_id,
       request_type,
       emergency_contact_name,
-      emergency_contact_mobile
+      emergency_contact_mobile,
+      emergency_requester_email,
+      emergency_requester_name,
+      emergency_requester_mobile
     } = body;
 
     // Validate required fields
-    if (!user_id || !blood_type || !units_required || !bloodbank_id) {
+    if (!blood_type || !units_required || !bloodbank_id) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Verify user exists
-    const user = await User.findById(user_id);
+    // Get user info
+    const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
@@ -53,14 +52,6 @@ export async function POST(req) {
       return NextResponse.json(
         { error: "Blood bank not found" },
         { status: 404 }
-      );
-    }
-
-    // Check request type permissions
-    if (request_type === "normal" && user.role !== "hospital") {
-      return NextResponse.json(
-        { error: "Only hospitals can create normal blood requests" },
-        { status: 403 }
       );
     }
 
@@ -89,15 +80,16 @@ export async function POST(req) {
       bloodbank_id,
       request_type: request_type || (user.role === "hospital" ? "normal" : "emergency"),
       status: "pending",
+      requested_date: new Date(),
       emergency_contact_name,
       emergency_contact_mobile
     };
 
     // Set the requester based on role
     if (user.role === "hospital") {
-      requestData.requested_by_hospital = user_id;
+      requestData.requested_by_hospital = userId;
     } else {
-      requestData.requested_by_user = user_id;
+      requestData.requested_by_user = userId;
     }
 
     const newRequest = await BloodRequest.create(requestData);
@@ -120,37 +112,45 @@ export async function POST(req) {
 
 // Get blood requests - with role-based filtering
 export async function GET(req) {
-  // Protect route - all authenticated users can view requests
-  const auth = await authenticateRole(req);
-  if (!auth.success) {
-    return NextResponse.json(
-      { error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  await connectDB();
-  
   try {
+    await connectDB();
+    
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = token.userId || token.sub;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     const { searchParams } = new URL(req.url);
-    const user_id = searchParams.get("user_id");
-    const bloodbank_id = searchParams.get("bloodbank_id");
     const status = searchParams.get("status");
     const request_type = searchParams.get("request_type");
     
     let query = {};
     
     // Role-based filtering
-    if (auth.role === 'user' && user_id) {
-      // Users can only see their own requests
-      query.user_id = user_id;
-    } else if (auth.role === 'bloodbank_admin') {
+    if (user.role === 'user') {
+      // Users can see their own requests (including emergency requests)
+      query.$or = [
+        { requested_by_user: userId },
+        { emergency_requester_email: user.email } // For emergency requests made before login
+      ];
+    } else if (user.role === 'bloodbank_admin') {
       // Blood banks can see requests to their banks
-      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
-    } else if (auth.role === 'hospital') {
+      const bloodBank = await BloodBank.findOne({ user_id: userId });
+      if (bloodBank) {
+        query.bloodbank_id = bloodBank._id;
+      } else {
+        return NextResponse.json({ requests: [] }, { status: 200 });
+      }
+    } else if (user.role === 'hospital') {
       // Hospitals can see all requests or filter by their requests
-      if (user_id) query.user_id = user_id;
-      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
+      query.requested_by_hospital = userId;
     }
     
     // Apply additional filters
@@ -158,8 +158,9 @@ export async function GET(req) {
     if (request_type) query.request_type = request_type;
     
     const requests = await BloodRequest.find(query)
-      .populate('user_id', 'name email')
-      .populate('bloodbank_id', 'name address')
+      .populate('requested_by_user', 'name email mobile_number')
+      .populate('requested_by_hospital', 'name email mobile_number')
+      .populate('bloodbank_id', 'name address contact_number email')
       .sort({ requested_date: -1 });
 
     return NextResponse.json({ requests }, { status: 200 });
@@ -174,15 +175,21 @@ export async function GET(req) {
 
 // Update request status - only by bloodbank admin
 export async function PUT(req) {
-  await connectDB();
-  
   try {
-    const body = await req.json();
-    const { admin_id, request_id, status, fulfilled_date } = body;
+    await connectDB();
     
-    if (!admin_id || !request_id || !status) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = token.userId || token.sub;
+    const body = await req.json();
+    const { request_id, status, fulfilled_date, rejection_reason } = body;
+    
+    if (!request_id || !status) {
       return NextResponse.json(
-        { error: "Admin ID, request ID, and status are required" },
+        { error: "Request ID and status are required" },
         { status: 400 }
       );
     }
@@ -195,8 +202,16 @@ export async function PUT(req) {
       );
     }
 
+    // If rejecting, rejection reason is mandatory
+    if (status === "rejected" && !rejection_reason) {
+      return NextResponse.json(
+        { error: "Rejection reason is required when rejecting a request" },
+        { status: 400 }
+      );
+    }
+
     // Verify user exists and is a blood bank admin
-    const user = await User.findById(admin_id);
+    const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
@@ -223,7 +238,7 @@ export async function PUT(req) {
     // Verify the admin manages this blood bank
     const bloodBank = await BloodBank.findOne({
       _id: request.bloodbank_id,
-      user_id: admin_id
+      user_id: userId
     });
 
     if (!bloodBank) {
@@ -259,7 +274,8 @@ export async function PUT(req) {
     // Update request status
     const updateData = { 
       status,
-      fulfilled_date: status === "accepted" ? (fulfilled_date || new Date()) : null
+      fulfilled_date: status === "accepted" ? (fulfilled_date || new Date()) : null,
+      rejection_reason: status === "rejected" ? rejection_reason : null
     };
     
     const updatedRequest = await BloodRequest.findByIdAndUpdate(

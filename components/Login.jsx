@@ -3,7 +3,7 @@ import React from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Heart, Github, LogIn } from 'lucide-react';
+import { Heart, LogIn } from 'lucide-react';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -35,7 +35,7 @@ const LoginPage = () => {
           {/* Google Sign In */}
           <button
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-[var(--border-color)] rounded-md shadow-sm bg-[var(--card-background)] text-sm font-medium text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ef4444] focus:ring-offset-[var(--background)]"
+            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-[var(--border-color)] rounded-md shadow-sm bg-[var(--card-background)] text-sm font-medium text-[var(--text-primary)] hover:!bg-red-100 hover:border-red-200 dark:hover:!bg-gray-400 dark:hover:border-red-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ef4444] focus:ring-offset-[var(--background)]"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -56,15 +56,6 @@ const LoginPage = () => {
               />
             </svg>
             Continue with Google
-          </button>
-
-          {/* GitHub Sign In */}
-          <button
-            onClick={handleGithubSignIn}
-            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-[var(--border-color)] rounded-md shadow-sm bg-[var(--card-background)] text-sm font-medium text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ef4444] focus:ring-offset-[var(--background)]"
-          >
-            <Github className="w-5 h-5" />
-            Continue with GitHub
           </button>
           
           {/* Email Sign In */}
