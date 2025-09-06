@@ -30,6 +30,7 @@ const Navbar = () => {
   const [dbRegistrationStatus, setDbRegistrationStatus] = useState(null);
   const { data: session, status } = useSession();
   const { userRole, loading: roleLoading, hasRole, isDonor, isBloodBank, isHospital, isRegistrationComplete } = useUserRole();
+  const pathname = usePathname();
   
   const profileRef = useRef(null);
 
@@ -113,7 +114,7 @@ const Navbar = () => {
     // Only show role selection if user has no role
     if (!hasRole) {
       return [
-        { href: '/register', icon: Users, label: 'Select Role', active: false }
+        { href: '/register', icon: Users, label: 'Select Role', active: pathname === '/register' }
       ];
     }
 
@@ -132,7 +133,7 @@ const Navbar = () => {
           break;
       }
       return [
-        { href: registrationPath, icon: Users, label: 'Complete Registration', active: false }
+        { href: registrationPath, icon: Users, label: 'Complete Registration', active: pathname === registrationPath }
       ];
     }
 
@@ -146,23 +147,24 @@ const Navbar = () => {
     // Role-specific items (only after registration is complete)
     if (isDonor) {
       // Add emergency for donors
-      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: false });
+      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: pathname === '/emergency' });
       items.push(
-        { href: '/donate', icon: Droplet, label: 'Donate Blood', active: false },
-        { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: false }
+        { href: '/donate', icon: Droplet, label: 'Donate Blood', active: pathname === '/donate' },
+        { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: pathname === '/dashboard/donor' }
       );
     } else if (isBloodBank) {
       items.push(
-        { href: '/requests', icon: TriangleAlert, label: 'Blood Requests', active: false },
-        { href: '/inventory', icon: Building, label: 'Blood Inventory', active: false },
-        { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: false }
+        { href: '/requests', icon: TriangleAlert, label: 'Blood Requests', active: pathname === '/requests' },
+        { href: '/inventory', icon: Building, label: 'Blood Inventory', active: pathname === '/inventory' },
+        { href: '/donors', icon: Users, label: 'View Donors', active: pathname === '/donors' },
+        { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: pathname === '/dashboard/bloodbank' }
       );
     } else if (isHospital) {
       // Add emergency for hospitals
-      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: false });
+      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: pathname === '/emergency' });
       items.push(
-        { href: '/requests', icon: Hospital, label: 'Blood Requests', active: false },
-        { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: false }
+        { href: '/requests', icon: Hospital, label: 'Blood Requests', active: pathname === '/requests' },
+        { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: pathname === '/dashboard/hospital' }
       );
     }
 
@@ -187,7 +189,11 @@ const Navbar = () => {
           <nav className="hidden lg:flex items-center space-x-1 xl:space-x-6">
             {/* Home - Active state */}
             <Link href="/">
-              <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[#ef4444] bg-[#ef4444]/5 transition-colors">
+              <button className={`flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
+                pathname === '/' 
+                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+              }`}>
                 <Heart className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
                 <span>Home</span>
               </button>
@@ -196,7 +202,11 @@ const Navbar = () => {
             {/* Role-based navigation items */}
             {navItems.map((item, index) => (
               <Link key={index} href={item.href}>
-                <button className="flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
+                <button className={`flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
+                  item.active 
+                    ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                    : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+                }`}>
                   <item.icon className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
                   <span>{item.label}</span>
                 </button>
@@ -208,7 +218,11 @@ const Navbar = () => {
           <nav className="hidden md:flex lg:hidden items-center">
             {/* Home - Active state */}
             <Link href="/">
-              <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
+              <button className={`flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
+                pathname === '/' 
+                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+              }`}>
                 <Heart className="w-5 h-5" aria-hidden="true" />
                 <span className="sr-only">Home</span>
               </button>
@@ -217,7 +231,11 @@ const Navbar = () => {
             {/* Role-based navigation items */}
             {navItems.map((item, index) => (
               <Link key={index} href={item.href}>
-                <button className="flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 transition-colors">
+                <button className={`flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
+                  item.active 
+                    ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                    : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+                }`}>
                   <item.icon className="w-5 h-5" aria-hidden="true" />
                   <span className="sr-only">{item.label}</span>
                 </button>
@@ -315,7 +333,11 @@ const Navbar = () => {
           <div className="container mx-auto px-4 py-3">
             <nav className="flex flex-col space-y-2">
               <Link href="/">
-                <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[#ef4444] bg-[#ef4444]/5 w-full text-left">
+                <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
+                  pathname === '/' 
+                    ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                    : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+                }`}>
                   <Heart className="w-5 h-5" aria-hidden="true" />
                   <span>Home</span>
                 </button>
@@ -324,7 +346,11 @@ const Navbar = () => {
               {/* Role-based navigation items */}
               {navItems.map((item, index) => (
                 <Link key={index} href={item.href}>
-                  <button className="flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5 w-full text-left">
+                  <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
+                    item.active 
+                      ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                      : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+                  }`}>
                     <item.icon className="w-5 h-5" aria-hidden="true" />
                     <span>{item.label}</span>
                   </button>
