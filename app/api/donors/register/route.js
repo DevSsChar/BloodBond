@@ -26,16 +26,26 @@ export async function POST(req) {
 
     console.log("🔵 Parsing request body...");
     const body = await req.json();
-    const { name, age, blood_type, mobile_number, emergency_contact_mobile } = body;
-    console.log("🔵 Request data:", { name, age, blood_type, mobile_number, emergency_contact_mobile });
+    const { name, age, weight, blood_type, mobile_number, emergency_contact_mobile } = body;
+    console.log("🔵 Request data:", { name, age, weight, blood_type, mobile_number, emergency_contact_mobile });
 
     console.log("Donor registration for user ID:", token.userId);
 
     // Validate required fields
-    if (!name || !age || !blood_type || !mobile_number || !emergency_contact_mobile) {
+    if (!name || !age || !weight || !blood_type || !mobile_number || !emergency_contact_mobile) {
       console.log("❌ Missing required fields");
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Validate weight requirement
+    const weightValue = parseFloat(weight);
+    if (isNaN(weightValue) || weightValue < 50) {
+      console.log("❌ Weight requirement not met:", weight);
+      return NextResponse.json(
+        { error: "Weight must be at least 50kg to be eligible as a donor" },
         { status: 400 }
       );
     }
@@ -72,7 +82,7 @@ export async function POST(req) {
             name,
             isRegistrationComplete: true // Mark registration as complete
           }
-          // age, blood_type, and mobile_number are stored in role-specific models
+          // age, weight, blood_type, and mobile_number are stored in role-specific models
         },
         { new: true }
       );
@@ -100,8 +110,9 @@ export async function POST(req) {
         existingDonor._id,
         {
           age,
+          weight,  // Add weight field
           blood_type,
-          mobile_number,  // Store mobile_number in Donor model
+          mobile_number,
           emergency_contact_mobile,
         },
         { new: true }
@@ -111,8 +122,9 @@ export async function POST(req) {
       donor = await Donor.create({
         user_id: token.userId,
         age,
+        weight,  // Add weight field
         blood_type,
-        mobile_number,  // Store mobile_number in Donor model
+        mobile_number,
         emergency_contact_mobile,
         total_donations: 0
       });
