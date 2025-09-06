@@ -3,329 +3,218 @@ import connectDB from "@/db/connectDB.mjs";
 import BloodInventory from "@/model/BloodInventory.js";
 import BloodBank from "@/model/BloodBank.js";
 import User from "@/model/user.js";
-import { authenticateRole } from "@/lib/roleAuth.js";
+import { getToken } from "next-auth/jwt";
 
 export async function POST(req) {
-  // Protect route - only blood bank admins can manage inventory
-  const auth = await authenticateRole(req, ['bloodbank_admin']);
-  if (!auth.success) {
-    return NextResponse.json(
-      { error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  await connectDB();
-
   try {
-    const body = await req.json();
-    const { admin_id, bloodbank_id, blood_type, units_available, expiry_date } = body;
+    await connectDB();
+    
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = token.userId || token.sub;
+    
+    // Find blood bank profile for this user
+    const bloodBank = await BloodBank.findOne({ user_id: userId });
+    if (!bloodBank) {
+      return NextResponse.json({ error: 'Blood bank profile not found' }, { status: 404 });
+    }
+
+    const data = await req.json();
+    const { blood_type, units_available, expiry_date } = data;
 
     // Validate required fields
-    if (!admin_id || !bloodbank_id || !blood_type || units_available === undefined || !expiry_date) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Verify user exists and is a blood bank admin
-    const user = await User.findById(admin_id);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    if (user.role !== "bloodbank_admin") {
-      return NextResponse.json(
-        { error: "User is not authorized to manage blood inventory" },
-        { status: 403 }
-      );
+    if (!blood_type || !units_available || !expiry_date) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: blood_type, units_available, expiry_date' 
+      }, { status: 400 });
     }
 
     // Validate units is a non-negative number
     if (units_available < 0) {
-      return NextResponse.json(
-        { error: "Units available must be a non-negative number" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Units available must be a non-negative number" }, { status: 400 });
     }
 
     // Validate expiry date is in the future
     const expiryDateObj = new Date(expiry_date);
     if (isNaN(expiryDateObj) || expiryDateObj <= new Date()) {
-      return NextResponse.json(
-        { error: "Expiry date must be a valid future date" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Expiry date must be a valid future date" }, { status: 400 });
     }
 
-    // Verify the blood bank exists and is managed by this admin
-    const bloodBank = await BloodBank.findOne({
-      _id: bloodbank_id,
-      user_id: admin_id
+    // Create new inventory item
+    const inventoryItem = await BloodInventory.create({
+      bloodbank_id: bloodBank._id,
+      blood_type,
+      units_available: parseInt(units_available),
+      expiry_date: expiryDateObj
     });
 
-    if (!bloodBank) {
-      return NextResponse.json(
-        { error: "Blood bank not found or not managed by this admin" },
-        { status: 404 }
-      );
-    }
-
-    // Check if inventory entry already exists for this blood bank and blood type
-    const existingInventory = await BloodInventory.findOne({
-      bloodbank_id,
-      blood_type
+    return NextResponse.json({
+      success: true,
+      message: 'Inventory item added successfully',
+      item: inventoryItem
     });
 
-    let inventoryEntry;
+  } catch (error) {
+    console.error("Error adding inventory item:", error);
+    return NextResponse.json({ error: 'Failed to add inventory item' }, { status: 500 });
+  }
+}
+
+// GET - Fetch inventory for blood bank
+export async function GET(req) {
+  try {
+    await connectDB();
     
-    if (existingInventory) {
-      // Update existing inventory
-      inventoryEntry = await BloodInventory.findByIdAndUpdate(
-        existingInventory._id,
-        {
-          units_available,
-          expiry_date: expiryDateObj,
-          date_of_entry: new Date() // Update the entry date
-        },
-        { new: true }
-      );
-    } else {
-      // Create new inventory entry
-      inventoryEntry = await BloodInventory.create({
-        bloodbank_id,
-        blood_type,
-        units_available,
-        expiry_date: expiryDateObj
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      console.log('GET /api/inventory - No token found');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = token.userId || token.sub;
+    console.log('GET /api/inventory - User ID:', userId);
+    
+    // Find blood bank profile for this user
+    const bloodBank = await BloodBank.findOne({ user_id: userId });
+    if (!bloodBank) {
+      console.log('GET /api/inventory - No blood bank profile found for user:', userId);
+      // Return empty inventory instead of error to handle gracefully
+      return NextResponse.json({
+        success: true,
+        inventory: [],
+        totalUnits: 0,
+        message: 'No blood bank profile found. Please complete your blood bank registration.'
       });
     }
 
-    return NextResponse.json(
-      { 
-        message: existingInventory ? "Blood inventory updated" : "Blood inventory created", 
-        inventory: inventoryEntry 
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Blood inventory error:", error);
-    return NextResponse.json(
-      { error: "Failed to manage blood inventory" },
-      { status: 500 }
-    );
-  }
-}
+    console.log('GET /api/inventory - Blood bank found:', bloodBank._id);
 
-// Get blood inventory - can be accessed by anyone but with admin-specific controls
-export async function GET(req) {
-  // Protect route - all authenticated users can view inventory
-  const auth = await authenticateRole(req);
-  if (!auth.success) {
-    return NextResponse.json(
-      { error: auth.error },
-      { status: auth.status }
-    );
-  }
+    // Get all inventory items for this blood bank
+    const inventory = await BloodInventory.find({ bloodbank_id: bloodBank._id })
+      .sort({ blood_type: 1, expiry_date: 1 });
 
-  await connectDB();
-  
-  try {
-    const { searchParams } = new URL(req.url);
-    const admin_id = searchParams.get("admin_id"); 
-    const bloodbank_id = searchParams.get("bloodbank_id");
-    const blood_type = searchParams.get("blood_type");
-    
-    let query = {};
-    
-    // Role-based filtering
-    if (auth.role === 'bloodbank_admin') {
-      // Blood bank admins can only see their own inventory
-      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
-    } else {
-      // Other roles can see all inventory (with filters if provided)
-      if (bloodbank_id) query.bloodbank_id = bloodbank_id;
-    }
-    
-    if (blood_type) query.blood_type = blood_type;
-    
-    // Filter out expired inventory
-    query.expiry_date = { $gt: new Date() };
-    
-    const inventory = await BloodInventory.find(query);
-    
-    return NextResponse.json({ inventory }, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching blood inventory:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch blood inventory" },
-      { status: 500 }
-    );
-  }
-}
+    console.log('GET /api/inventory - Found', inventory.length, 'inventory items');
 
-// Update blood inventory - only by bloodbank admin
-export async function PUT(req) {
-  await connectDB();
-  
-  try {
-    const body = await req.json();
-    const { admin_id, inventory_id, units_available, expiry_date } = body;
-    
-    if (!admin_id || !inventory_id) {
-      return NextResponse.json(
-        { error: "Admin ID and Inventory ID are required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify user exists and is a blood bank admin
-    const user = await User.findById(admin_id);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    if (user.role !== "bloodbank_admin") {
-      return NextResponse.json(
-        { error: "User is not authorized to manage blood inventory" },
-        { status: 403 }
-      );
-    }
-    
-    // Find the inventory entry
-    const inventoryEntry = await BloodInventory.findById(inventory_id);
-    if (!inventoryEntry) {
-      return NextResponse.json(
-        { error: "Inventory entry not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Verify the admin manages this blood bank
-    const bloodBank = await BloodBank.findOne({
-      _id: inventoryEntry.bloodbank_id,
-      user_id: admin_id
+    return NextResponse.json({
+      success: true,
+      inventory: inventory,
+      totalUnits: inventory.reduce((sum, item) => sum + item.units_available, 0)
     });
 
+  } catch (error) {
+    console.error("Error fetching inventory:", error);
+    return NextResponse.json({ error: 'Failed to fetch inventory' }, { status: 500 });
+  }
+}
+
+// PUT - Update inventory item
+export async function PUT(req) {
+  try {
+    await connectDB();
+    
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = token.userId || token.sub;
+    const data = await req.json();
+    
+    // Find blood bank profile for this user
+    const bloodBank = await BloodBank.findOne({ user_id: userId });
     if (!bloodBank) {
-      return NextResponse.json(
-        { error: "Not authorized to modify this inventory entry" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Blood bank profile not found' }, { status: 404 });
     }
-    
-    const updateData = {};
-    if (units_available !== undefined) {
-      if (units_available < 0) {
-        return NextResponse.json(
-          { error: "Units available must be a non-negative number" },
-          { status: 400 }
-        );
-      }
-      updateData.units_available = units_available;
+
+    const { itemId, units_available, expiry_date } = data;
+    if (!itemId) {
+      return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
     }
-    
+
+    // Validate units is a non-negative number
+    if (units_available !== undefined && units_available < 0) {
+      return NextResponse.json({ error: "Units available must be a non-negative number" }, { status: 400 });
+    }
+
+    // Validate expiry date is in the future
     if (expiry_date) {
       const expiryDateObj = new Date(expiry_date);
       if (isNaN(expiryDateObj) || expiryDateObj <= new Date()) {
-        return NextResponse.json(
-          { error: "Expiry date must be a valid future date" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Expiry date must be a valid future date" }, { status: 400 });
       }
-      updateData.expiry_date = expiryDateObj;
     }
-    
-    const updatedInventory = await BloodInventory.findByIdAndUpdate(
-      inventory_id,
+
+    // Update inventory item (only if it belongs to this blood bank)
+    const updateData = {};
+    if (units_available !== undefined) updateData.units_available = parseInt(units_available);
+    if (expiry_date) updateData.expiry_date = new Date(expiry_date);
+
+    const updatedItem = await BloodInventory.findOneAndUpdate(
+      { _id: itemId, bloodbank_id: bloodBank._id },
       updateData,
       { new: true }
     );
-    
-    return NextResponse.json(
-      { message: "Blood inventory updated successfully", inventory: updatedInventory },
-      { status: 200 }
-    );
+
+    if (!updatedItem) {
+      return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Inventory item updated successfully',
+      item: updatedItem
+    });
+
   } catch (error) {
-    console.error("Blood inventory update error:", error);
-    return NextResponse.json(
-      { error: "Failed to update blood inventory" },
-      { status: 500 }
-    );
+    console.error("Error updating inventory item:", error);
+    return NextResponse.json({ error: 'Failed to update inventory item' }, { status: 500 });
   }
 }
 
-// Delete inventory entry - only by bloodbank admin
+// DELETE - Remove inventory item
 export async function DELETE(req) {
-  await connectDB();
-  
   try {
-    const { searchParams } = new URL(req.url);
-    const inventory_id = searchParams.get("id");
-    const admin_id = searchParams.get("admin_id");
+    await connectDB();
     
-    if (!inventory_id || !admin_id) {
-      return NextResponse.json(
-        { error: "Inventory ID and Admin ID are required" },
-        { status: 400 }
-      );
-    }
-    
-    // Verify user exists and is a blood bank admin
-    const user = await User.findById(admin_id);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (user.role !== "bloodbank_admin") {
-      return NextResponse.json(
-        { error: "User is not authorized to manage blood inventory" },
-        { status: 403 }
-      );
-    }
+    const userId = token.userId || token.sub;
+    const { searchParams } = new URL(req.url);
+    const itemId = searchParams.get('itemId');
     
-    // Find the inventory entry
-    const inventoryEntry = await BloodInventory.findById(inventory_id);
-    if (!inventoryEntry) {
-      return NextResponse.json(
-        { error: "Inventory entry not found" },
-        { status: 404 }
-      );
+    if (!itemId) {
+      return NextResponse.json({ error: 'Item ID is required' }, { status: 400 });
     }
-    
-    // Verify the admin manages this blood bank
-    const bloodBank = await BloodBank.findOne({
-      _id: inventoryEntry.bloodbank_id,
-      user_id: admin_id
+
+    // Find blood bank profile for this user
+    const bloodBank = await BloodBank.findOne({ user_id: userId });
+    if (!bloodBank) {
+      return NextResponse.json({ error: 'Blood bank profile not found' }, { status: 404 });
+    }
+
+    // Delete inventory item (only if it belongs to this blood bank)
+    const deletedItem = await BloodInventory.findOneAndDelete({
+      _id: itemId,
+      bloodbank_id: bloodBank._id
     });
 
-    if (!bloodBank) {
-      return NextResponse.json(
-        { error: "Not authorized to delete this inventory entry" },
-        { status: 403 }
-      );
+    if (!deletedItem) {
+      return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
     }
-    
-    await BloodInventory.findByIdAndDelete(inventory_id);
-    
-    return NextResponse.json(
-      { message: "Blood inventory entry deleted successfully" },
-      { status: 200 }
-    );
+
+    return NextResponse.json({
+      success: true,
+      message: 'Inventory item deleted successfully'
+    });
+
   } catch (error) {
-    console.error("Blood inventory deletion error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete blood inventory entry" },
-      { status: 500 }
-    );
+    console.error("Error deleting inventory item:", error);
+    return NextResponse.json({ error: 'Failed to delete inventory item' }, { status: 500 });
   }
 }
