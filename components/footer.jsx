@@ -18,7 +18,7 @@ export default function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-3 gap-y-1 mt-2 text-xs">
             <span className="flex items-center space-x-1">
               <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3" aria-hidden="true" />
-              <span>Emergency: 911</span>
+              <span>Emergency: 108</span>
             </span>
             
             <span className="hidden xs:inline text-gray-400 dark:text-gray-600">•</span>
