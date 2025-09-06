@@ -8,16 +8,9 @@ export async function POST(req) {
   try {
     await connectDB();
     
-    // Get user token
+    // Get user token (optional for emergency requests)
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     
-    if (!token) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
     const {
       patientName,
@@ -28,7 +21,12 @@ export async function POST(req) {
       emergencyDetails,
       latitude,
       longitude,
-      selectedBloodBankId
+      selectedBloodBankId,
+      isLoggedIn,
+      userEmail,
+      requesterName,
+      requesterEmail,
+      relationToPatient
     } = body;
 
     // Validate required fields
@@ -39,18 +37,29 @@ export async function POST(req) {
       );
     }
 
-    // Find user
-    const user = await User.findOne({ email: token.email });
-    if (!user) {
+    // Additional validation for non-logged-in users
+    if (!isLoggedIn && (!requesterName || !requesterEmail || !relationToPatient)) {
       return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
+        { error: "Requester information is required for emergency access" },
+        { status: 400 }
       );
     }
 
+    let user = null;
+    
+    // Handle logged-in users
+    if (token && isLoggedIn) {
+      user = await User.findOne({ email: token.email });
+      if (!user) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+    }
+
     // Create emergency blood request
-    const emergencyRequest = await BloodRequest.create({
-      requested_by_user: user._id,
+    const emergencyRequestData = {
       bloodbank_id: selectedBloodBankId,
       blood_type: bloodType,
       units_required: parseInt(unitsRequired),
@@ -58,12 +67,24 @@ export async function POST(req) {
       status: "pending",
       emergency_contact_name: patientName,
       emergency_contact_mobile: contactNumber,
-      // Store additional emergency details in a custom field (we might need to update the model)
       emergency_details: emergencyDetails,
       hospital_location: hospitalLocation,
       user_latitude: latitude,
       user_longitude: longitude
-    });
+    };
+
+    // Add user reference for logged-in users, or store requester info for non-logged-in users
+    if (user) {
+      emergencyRequestData.requested_by_user = user._id;
+    } else {
+      // Store requester information for non-logged-in emergency requests
+      emergencyRequestData.emergency_requester_name = requesterName;
+      emergencyRequestData.emergency_requester_email = requesterEmail;
+      emergencyRequestData.relation_to_patient = relationToPatient;
+      emergencyRequestData.requested_by_user = null; // No user reference
+    }
+
+    const emergencyRequest = await BloodRequest.create(emergencyRequestData);
 
     return NextResponse.json({
       success: true,

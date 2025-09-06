@@ -1,27 +1,27 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react" 
-import { useRef, useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import Link from "next/link";
-import { 
-  Heart, 
-  TriangleAlert,
-  Users,
-  Activity,
-  Sun,
-  Moon,
-  Menu,
-  X,
-  LogIn,
-  UserCircle,
-  LogOut,
-  Building,
-  Hospital,
-  Droplet
-} from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import {
+  Activity,
+  Building,
+  Droplet,
+  Heart,
+  Hospital,
+  LogIn,
+  LogOut,
+  Menu,
+  Moon,
+  Sun,
+  TriangleAlert,
+  UserCircle,
+  Users,
+  X
+} from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 const Navbar = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -146,8 +146,6 @@ const Navbar = () => {
     
     // Role-specific items (only after registration is complete)
     if (isDonor) {
-      // Add emergency for donors
-      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: pathname === '/emergency' });
       items.push(
         { href: '/donate', icon: Droplet, label: 'Donate Blood', active: pathname === '/donate' },
         { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: pathname === '/dashboard/donor' }
@@ -160,8 +158,6 @@ const Navbar = () => {
         { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: pathname === '/dashboard/bloodbank' }
       );
     } else if (isHospital) {
-      // Add emergency for hospitals
-      items.push({ href: '/emergency', icon: TriangleAlert, label: 'Emergency', active: pathname === '/emergency' });
       items.push(
         { href: '/requests', icon: Hospital, label: 'Blood Requests', active: pathname === '/requests' },
         { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: pathname === '/dashboard/hospital' }
@@ -198,6 +194,18 @@ const Navbar = () => {
                 <span>Home</span>
               </button>
             </Link>
+
+            {/* Emergency page */}
+            <Link href="/emergency-page">
+              <button className={`flex items-center space-x-1.5 px-3 lg:px-4 py-2 lg:py-2.5 rounded-4xl text-sm lg:text-base font-medium transition-colors ${
+                pathname === '/emergency-page' 
+                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+              }`}>
+                <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+                <span>Emergency</span>
+              </button>
+            </Link>
             
             {/* Role-based navigation items */}
             {navItems.map((item, index) => (
@@ -225,6 +233,18 @@ const Navbar = () => {
               }`}>
                 <Heart className="w-5 h-5" aria-hidden="true" />
                 <span className="sr-only">Home</span>
+              </button>
+            </Link>
+
+            {/* Emergency page */}
+            <Link href="/emergency-page">
+              <button className={`flex items-center space-x-1 px-2 py-2 rounded-4xl text-sm font-medium transition-colors ${
+                pathname === '/emergency-page' 
+                  ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                  : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+              }`}>
+                <TriangleAlert className="w-5 h-5" aria-hidden="true" />
+                <span className="sr-only">Emergency</span>
               </button>
             </Link>
             
@@ -306,10 +326,12 @@ const Navbar = () => {
             )}
 
             {/* Emergency CTA button */}
-            <button className="hidden sm:flex items-center justify-center gap-1.5 px-3 md:px-4 lg:px-5 py-2 lg:py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-sm lg:text-base transition-colors">
-              <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
-              <span>Emergency</span>
-            </button>
+            <Link href="/emergency">
+              <button className="hidden sm:flex items-center justify-center gap-1.5 px-3 md:px-4 lg:px-5 py-2 lg:py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-sm lg:text-base transition-colors">
+                <TriangleAlert className="w-4 h-4 lg:w-5 lg:h-5" aria-hidden="true" />
+                <span>Emergency</span>
+              </button>
+            </Link>
 
             {/* Mobile menu button */}
             <button 
@@ -340,6 +362,18 @@ const Navbar = () => {
                 }`}>
                   <Heart className="w-5 h-5" aria-hidden="true" />
                   <span>Home</span>
+                </button>
+              </Link>
+
+              {/* Emergency page */}
+              <Link href="/emergency-page">
+                <button className={`flex items-center space-x-3 px-4 py-2.5 rounded-4xl text-base font-medium w-full text-left transition-colors ${
+                  pathname === '/emergency-page' 
+                    ? 'text-[#ef4444] bg-[#ef4444]/5' 
+                    : 'text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/5'
+                }`}>
+                  <TriangleAlert className="w-5 h-5" aria-hidden="true" />
+                  <span>Emergency</span>
                 </button>
               </Link>
               
@@ -377,10 +411,12 @@ const Navbar = () => {
                 </Link>
               )}
 
-              <button className="flex items-center justify-center gap-2 mt-2 px-5 py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-base">
-                <TriangleAlert className="w-5 h-5" aria-hidden="true" />
-                <span>Emergency</span>
-              </button>
+              <Link href="/emergency">
+                <button className="flex items-center justify-center gap-2 mt-2 px-5 py-2.5 rounded-4xl bg-[#ef4444] hover:bg-[#ef4444]/90 text-white font-medium text-base">
+                  <TriangleAlert className="w-5 h-5" aria-hidden="true" />
+                  <span>Emergency</span>
+                </button>
+              </Link>
             </nav>
           </div>
         </div>

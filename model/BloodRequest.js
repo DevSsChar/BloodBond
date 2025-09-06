@@ -16,7 +16,11 @@ const bloodRequestSchema = new mongoose.Schema({
   emergency_details: { type: String, default: null },
   hospital_location: { type: String, default: null },
   user_latitude: { type: Number, default: null },
-  user_longitude: { type: Number, default: null }
+  user_longitude: { type: Number, default: null },
+  // Fields for non-logged-in emergency requests
+  emergency_requester_name: { type: String, default: null },
+  emergency_requester_email: { type: String, default: null },
+  relation_to_patient: { type: String, default: null }
 });
 
 export default mongoose.models.BloodRequest || mongoose.model("BloodRequest", bloodRequestSchema);

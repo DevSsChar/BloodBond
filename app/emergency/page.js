@@ -1,4 +1,5 @@
 "use client"
+import Link from 'next/link';
 import { Clock, Loader, MapPin, Navigation, Phone, TriangleAlert, Users } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -16,7 +17,11 @@ const EmergencyPage = () => {
     hospitalLocation: '',
     emergencyDetails: '',
     latitude: null,
-    longitude: null
+    longitude: null,
+    // Additional fields for non-logged-in users
+    requesterName: '',
+    requesterEmail: '',
+    relationToPatient: ''
   });
   
   const [location, setLocation] = useState({
@@ -32,13 +37,8 @@ const EmergencyPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchingBloodBanks, setSearchingBloodBanks] = useState(false);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) {
-      router.push('/login');
-    }
-  }, [session, status, router]);
+  // Note: Emergency page accessible to all users (logged in or not)
+  // No authentication redirect for emergency situations
 
   // Get user's current location
   const getCurrentLocation = () => {
@@ -145,6 +145,12 @@ const EmergencyPage = () => {
       return;
     }
 
+    // Validate additional fields for non-logged-in users
+    if (!session && (!formData.requesterName || !formData.requesterEmail || !formData.relationToPatient)) {
+      alert('Please fill all requester details');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const response = await fetch('/api/emergency/request', {
@@ -154,7 +160,9 @@ const EmergencyPage = () => {
         },
         body: JSON.stringify({
           ...formData,
-          selectedBloodBankId: selectedBloodBank._id
+          selectedBloodBankId: selectedBloodBank._id,
+          isLoggedIn: !!session,
+          userEmail: session?.user?.email || formData.requesterEmail
         })
       });
 
@@ -171,7 +179,10 @@ const EmergencyPage = () => {
           hospitalLocation: '',
           emergencyDetails: '',
           latitude: null,
-          longitude: null
+          longitude: null,
+          requesterName: '',
+          requesterEmail: '',
+          relationToPatient: ''
         });
         setSelectedBloodBank(null);
         setNearbyBloodBanks([]);
@@ -187,6 +198,7 @@ const EmergencyPage = () => {
     }
   };
 
+  // Show loading only if session is still loading, but allow access without session
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -195,9 +207,7 @@ const EmergencyPage = () => {
     );
   }
 
-  if (!session) {
-    return null;
-  }
+  // Remove the session requirement - emergency accessible to all
 
   return (
     <div className="min-h-screen bg-[var(--background)] py-8">
@@ -275,8 +285,81 @@ const EmergencyPage = () => {
             <TriangleAlert className="h-6 w-6 text-[#ef4444] mr-2" />
             <h2 className="text-2xl font-bold text-[var(--text-primary)]">Submit Emergency Request</h2>
           </div>
+
+          {/* User Status Indicator */}
+          <div className="mb-6 p-4 rounded-lg border border-[var(--border-color)]">
+            {session ? (
+              <div className="flex items-center text-green-600">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-sm font-medium">Logged in as {session.user?.email}</span>
+              </div>
+            ) : (
+              <div className="flex items-center text-blue-600">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                <span className="text-sm font-medium">Emergency Access - Additional requester information required</span>
+              </div>
+            )}
+          </div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Additional fields for non-logged-in users */}
+            {!session && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800 mb-6">
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-4">Requester Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                      Your Name *
+                    </label>
+                    <input 
+                      type="text" 
+                      name="requesterName"
+                      value={formData.requesterName}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-blue-900/50 text-blue-900 dark:text-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                      Your Email *
+                    </label>
+                    <input 
+                      type="email" 
+                      name="requesterEmail"
+                      value={formData.requesterEmail}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-blue-900/50 text-blue-900 dark:text-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your email address"
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                      Relation to Patient *
+                    </label>
+                    <select 
+                      name="relationToPatient"
+                      value={formData.relationToPatient}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-blue-900/50 text-blue-900 dark:text-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select your relation to patient</option>
+                      <option value="self">Self (I am the patient)</option>
+                      <option value="family">Family Member</option>
+                      <option value="friend">Friend</option>
+                      <option value="medical_staff">Medical Staff</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
@@ -568,6 +651,31 @@ const EmergencyPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Login suggestion for non-logged-in users */}
+          {!session && (
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start">
+                <div className="w-5 h-5 bg-blue-500 rounded-full mr-2 mt-0.5 flex-shrink-0 flex items-center justify-center">
+                  <span className="text-white text-xs">i</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">For Better Experience</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                    Consider creating an account for faster emergency requests, tracking your requests, and accessing additional features.
+                  </p>
+                  <div className="flex gap-2">
+                    <Link href="/login" className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors">
+                      Login
+                    </Link>
+                    <Link href="/register" className="text-sm border border-blue-600 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+                      Sign Up
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
