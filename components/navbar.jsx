@@ -170,6 +170,7 @@ const Navbar = () => {
     } else if (isHospital) {
       items.push(
         { href: '/requests', icon: Hospital, label: 'Blood Requests', active: pathname === '/requests' },
+        { href: '/hospital-inventory', icon: Building, label: 'Inventory Management', active: pathname === '/hospital-inventory' },
         { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: pathname === '/dashboard/hospital' }
       );
     }
