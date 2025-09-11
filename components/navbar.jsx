@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   Moon,
+  Send,
   Sun,
   TriangleAlert,
   UserCircle,
@@ -162,6 +163,7 @@ const Navbar = () => {
     } else if (isBloodBank) {
       items.push(
         { href: '/requests', icon: TriangleAlert, label: 'Blood Requests', active: pathname === '/requests' },
+        { href: '/hospital-requests?role=bloodbank', icon: Hospital, label: 'Hospital Requests', active: pathname === '/hospital-requests' },
         { href: '/emergency-call', icon: TriangleAlert, label: 'Call Donors', active: pathname === '/emergency-call' },
         { href: '/inventory', icon: Building, label: 'Blood Inventory', active: pathname === '/inventory' },
         { href: '/donors', icon: Users, label: 'View Donors', active: pathname === '/donors' },
@@ -170,6 +172,7 @@ const Navbar = () => {
     } else if (isHospital) {
       items.push(
         { href: '/requests', icon: Hospital, label: 'Blood Requests', active: pathname === '/requests' },
+        { href: '/hospital-requests', icon: Send, label: 'Hospital Requests', active: pathname === '/hospital-requests' },
         { href: '/hospital-inventory', icon: Building, label: 'Inventory Management', active: pathname === '/hospital-inventory' },
         { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: pathname === '/dashboard/hospital' }
       );
