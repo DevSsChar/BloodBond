@@ -64,10 +64,11 @@ To create a seamless, efficient, and life-saving blood management ecosystem that
 - **Session Persistence**: Automatic session management and refresh
 
 ### 📊 **Inventory Management**
-- **Real-time Blood Inventory**: Live tracking of blood units by type
-- **Automated Logging**: Comprehensive inventory change tracking
-- **Low Stock Alerts**: Automated notifications for critical blood levels
-- **Expiry Management**: Blood unit expiration tracking and alerts
+- **Dual Inventory Systems**: Separate inventory management for Blood Banks and Hospitals
+- **Real-time Blood Inventory**: Live tracking of blood units by type with expiry monitoring
+- **Hospital Inventory Management**: Independent hospital blood stock control with batch tracking
+- **Automated Logging**: Comprehensive inventory change tracking with audit trails
+- **Stock Level Indicators**: Visual indicators for stock status (Good/Low Stock/Critical)
 
 ### 🚨 **Emergency System**
 - **Emergency Requests**: Priority handling for urgent blood needs
@@ -82,10 +83,18 @@ To create a seamless, efficient, and life-saving blood management ecosystem that
 - **Multi-language Support**: Accessible assistance for diverse users
 
 ### 📱 **Real-time Notifications**
-- **Toast Notifications**: Instant feedback for user actions
+- **Toast Notifications**: Instant feedback for user actions with contextual messaging
 - **Emergency Alerts**: Priority notifications for urgent requests
 - **Status Updates**: Automatic notifications for request status changes
+- **Inventory Alerts**: Low stock and expiry warnings for both blood banks and hospitals
 - **Cross-platform Sync**: Consistent notifications across devices
+
+### 🎨 **Enhanced User Interface**
+- **Responsive Design**: Mobile-first design with seamless desktop experience
+- **Dark/Light Theme**: System-aware theme switching with CSS variables
+- **Interactive Landing Page**: Multi-section home page with feature highlights and statistics
+- **Role-based Dashboards**: Customized dashboards with relevant statistics and quick actions
+- **Modern UI Components**: Clean, accessible interface with Lucide React icons
 
 ---
 
@@ -141,17 +150,19 @@ BloodBond follows a modern **JAMstack architecture** with:
 bloodbond/
 ├── 📁 app/                          # Next.js App Router directory
 │   ├── 📄 layout.js                 # Root layout with providers
-│   ├── 📄 page.js                   # Landing page
-│   ├── 📄 globals.css               # Global styles & CSS variables
+│   ├── 📄 page.js                   # Enhanced landing page with feature sections
+│   ├── 📄 globals.css               # Global styles & CSS variables for theming
 │   ├── 📁 api/                      # Backend API routes
 │   │   ├── 📁 auth/                 # Authentication endpoints
 │   │   ├── 📁 requests/             # Blood request management
-│   │   ├── 📁 inventory/            # Blood inventory APIs
+│   │   ├── 📁 inventory/            # Blood bank inventory APIs
+│   │   ├── 📁 hospital-inventory/   # Hospital inventory management APIs
 │   │   ├── 📁 emergency/            # Emergency request handling
 │   │   └── 📁 chatbot/              # AI chatbot integration
-│   ├── 📁 dashboard/                # Role-based dashboards
+│   ├── 📁 dashboard/                # Role-based dashboards with inventory stats
+│   ├── 📁 hospital-inventory/       # Hospital inventory management interface
 │   ├── 📁 emergency/                # Emergency request interface
-│   ├── 📁 track-request/            # Request tracking system
+│   ├── 📁 track-request/            # Universal request tracking system
 │   └── 📁 login/                    # Authentication pages
 ├── 📁 components/                   # Reusable UI components
 │   ├── 📄 navbar.jsx                # Navigation with role-based menus
@@ -171,10 +182,14 @@ bloodbond/
 │   └── 📄 knowledgeBase.js          # Chatbot knowledge base
 ├── 📁 model/                        # MongoDB schemas
 │   ├── 📄 user.js                   # User model with roles
-│   ├── 📄 BloodRequest.js           # Blood request schema
+│   ├── 📄 BloodRequest.js           # Blood request schema with status tracking
 │   ├── 📄 BloodBank.js              # Blood bank information
-│   ├── 📄 BloodInventory.js         # Inventory management
-│   └── 📄 Donation.js               # Donation records
+│   ├── 📄 BloodInventory.js         # Blood bank inventory management
+│   ├── 📄 HospitalInventory.js      # Hospital inventory schema with batch tracking
+│   ├── 📄 HospitalInventoryLog.js   # Hospital inventory audit trail
+│   ├── 📄 InventoryLog.js           # Blood bank inventory change logs
+│   ├── 📄 Donation.js               # Donation records
+│   └── 📄 DonationDrive.js          # Donation drive management
 ├── 📁 db/                           # Database configuration
 │   └── 📄 connectDB.mjs             # MongoDB connection
 └── 📄 next.config.mjs               # Next.js configuration
@@ -269,10 +284,14 @@ export async function middleware(request) {
 - **Emergency Requests**: Submit urgent blood needs
 
 ### **🏥 Hospital**
-- **Patient Management**: Handle patient blood requirements
-- **Bulk Requests**: Submit multiple blood requests
-- **Inventory Monitoring**: Track available blood units
-- **Emergency Access**: Priority blood request handling
+- **Patient Management**: Handle patient blood requirements with comprehensive tracking
+- **Hospital Inventory Management**: Independent blood stock management with batch tracking
+- **Inventory Dashboard**: Real-time inventory overview with blood type breakdown
+- **Stock Level Management**: Minimum stock level configuration with automated alerts
+- **Expiry Tracking**: Blood unit expiration monitoring with 30-day warnings
+- **Inventory Logs**: Complete audit trail of inventory changes and transactions
+- **Bulk Requests**: Submit multiple blood requests efficiently
+- **Emergency Access**: Priority blood request handling with instant notifications
 
 ### **🏛️ Blood Bank**
 - **Inventory Management**: Complete blood stock control
@@ -301,20 +320,30 @@ export async function middleware(request) {
 - Automated notifications to blood banks
 - Comprehensive request tracking
 
-### **2. Inventory Management** (`/app/api/inventory/`)
+### **2. Inventory Management** (`/app/api/inventory/` & `/app/api/hospital-inventory/`)
 ```javascript
-// Inventory operations
-- Real-time blood unit tracking
+// Blood Bank Inventory Operations
+- Real-time blood unit tracking for blood banks
 - Blood type categorization (A+, A-, B+, B-, AB+, AB-, O+, O-)
-- Expiry date management
-- Low stock alerts
-- Inventory transaction logging
+- Expiry date management with 30-day warnings
+- Low stock alerts and automated notifications
+- Comprehensive inventory transaction logging
+
+// Hospital Inventory Operations
+- Independent hospital blood stock management
+- Batch number tracking for blood units
+- Minimum and maximum stock level configuration
+- Complete audit trail with inventory change logs
+- Stock level indicators (Good/Low/Critical)
 ```
 
 **Components:**
-- **BloodInventory.js**: Core inventory model
-- **InventoryLog.js**: Transaction history
-- **Automated Alerts**: Low stock notifications
+- **BloodInventory.js**: Blood bank inventory model
+- **HospitalInventory.js**: Hospital-specific inventory model
+- **HospitalInventoryLog.js**: Hospital inventory audit trail
+- **InventoryLog.js**: Blood bank transaction history
+- **Dashboard Integration**: Real-time inventory statistics
+- **Automated Alerts**: Low stock and expiry notifications
 
 ### **3. Emergency System** (`/app/emergency/`)
 ```javascript
@@ -391,19 +420,28 @@ POST /api/users/register        # New user registration
 
 ### **Blood Request Endpoints**
 ```
-GET    /api/requests            # List blood requests
-POST   /api/requests            # Create new request
-PUT    /api/requests/:id        # Update request
-DELETE /api/requests/:id        # Cancel request
-GET    /api/requests/track      # Track request status
+GET    /api/requests            # List blood requests with status filtering
+POST   /api/requests            # Create new request with automatic notifications
+PUT    /api/requests/:id        # Update request status (accept/reject/fulfill)
+DELETE /api/requests/:id        # Cancel request with status update
+GET    /api/requests/track      # Universal request tracking system
 ```
 
-### **Inventory Endpoints**
+### **Blood Bank Inventory Endpoints**
 ```
-GET    /api/inventory           # View blood inventory
-POST   /api/inventory           # Update inventory
-GET    /api/inventory/logs      # Inventory change logs
-POST   /api/inventory/alert     # Low stock alerts
+GET    /api/inventory           # View blood bank inventory with statistics
+POST   /api/inventory           # Update blood bank inventory
+GET    /api/inventory/logs      # Blood bank inventory change logs
+POST   /api/inventory/alert     # Low stock alerts for blood banks
+```
+
+### **Hospital Inventory Endpoints**
+```
+GET    /api/hospital-inventory  # View hospital inventory with breakdown
+POST   /api/hospital-inventory  # Add/update hospital inventory
+PUT    /api/hospital-inventory/:id # Update existing inventory item
+DELETE /api/hospital-inventory/:id # Remove inventory item
+GET    /api/hospital-inventory/logs # Hospital inventory audit logs
 ```
 
 ### **Emergency Endpoints**
@@ -420,10 +458,12 @@ POST   /api/emergency/notify    # Send emergency notifications
 ### **Core Components**
 
 #### **Navigation** (`/components/navbar.jsx`)
-- **Role-based Menus**: Different navigation for each user type
-- **Authentication State**: Login/logout functionality
-- **Responsive Design**: Mobile-friendly navigation
-- **Theme Toggle**: Dark/light mode switching
+- **Role-based Menus**: Customized navigation for Donors, Hospitals, and Blood Banks
+- **Hospital Inventory Access**: Direct navigation to hospital inventory management
+- **Universal Track Status**: Access to request tracking for all user types
+- **Authentication State**: Login/logout functionality with session management
+- **Responsive Design**: Mobile-friendly collapsible navigation
+- **Theme Toggle**: Dark/light mode switching with system preference detection
 
 #### **Authentication** (`/components/Login.jsx`)
 - **Multi-step Registration**: Role selection and profile completion
@@ -451,12 +491,24 @@ POST   /api/emergency/notify    # Send emergency notifications
 
 #### **Theme Management** (`/context/ThemeContext.jsx`)
 ```javascript
-// Theme features
-- Dark/light mode toggle
-- System preference detection
-- Persistent theme storage
-- CSS variable management
+// Advanced theming system
+- Dark/light mode toggle with smooth transitions
+- System preference detection and auto-switching
+- Persistent theme storage with localStorage
+- CSS variable management for consistent theming
+- Component-level theme awareness
+- Enhanced UI consistency across all pages
 ```
+
+### **Landing Page Enhancements**
+
+#### **Interactive Home Page** (`/app/page.js`)
+- **Hero Section**: Compelling call-to-action with live statistics
+- **How BloodBond Works**: 6-card feature showcase with icons and descriptions
+- **Process Workflow**: 4-step donation process visualization with numbered steps
+- **Impact Statistics**: Real-time metrics display with progress indicators
+- **Dual Call-to-Action**: Emergency request and donor registration sections
+- **Responsive Design**: Mobile-optimized with consistent dark/light theme support
 
 ---
 
@@ -466,23 +518,36 @@ POST   /api/emergency/notify    # Send emergency notifications
 
 #### **Role Management** (`/hooks/useUserRole.js`)
 ```javascript
-// Role-based functionality
+// Enhanced role-based functionality
 const { userRole, isAuthorized, checkPermission } = useUserRole();
-// Handles role checking and authorization
+// Handles role checking, authorization, and navigation permissions
+// Supports Donor, Hospital, and Blood Bank roles with granular permissions
 ```
 
 #### **Emergency Notifications** (`/hooks/useEmergencyNotifications.js`)
 ```javascript
-// Emergency alert system
+// Comprehensive emergency alert system
 const { notifications, markAsRead, clearAll } = useEmergencyNotifications();
-// Manages emergency request notifications
+// Manages emergency request notifications with priority handling
+// Supports real-time updates and cross-role notifications
 ```
 
 #### **Request Status** (`/hooks/useRequestStatus.js`)
 ```javascript
-// Request tracking functionality
+// Advanced request tracking functionality
 const { requests, updateStatus, trackRequest } = useRequestStatus();
-// Handles blood request status management
+// Handles blood request lifecycle management
+// Universal tracking system for all user roles
+// Real-time status updates with notification integration
+```
+
+#### **Inventory Management** (`/hooks/useInventory.js`)
+```javascript
+// Dual inventory system management
+const { inventory, updateStock, checkLowStock, getExpiryWarnings } = useInventory();
+// Handles both blood bank and hospital inventory operations
+// Automated alerts for low stock and expiring units
+// Real-time inventory synchronization
 ```
 
 ### **Utility Libraries**
@@ -547,10 +612,14 @@ npm start
 ## 🤝 Contributing
 
 ### **Development Guidelines**
-1. **Code Standards**: Follow ESLint configuration
-2. **Component Structure**: Use functional components with hooks
-3. **Styling**: TailwindCSS with CSS variables for theming
-4. **API Design**: RESTful endpoints with proper error handling
+1. **Code Standards**: Follow ESLint configuration with consistent formatting
+2. **Component Structure**: Use functional components with custom hooks
+3. **Styling**: TailwindCSS with CSS variables for comprehensive theming support
+4. **API Design**: RESTful endpoints with proper error handling and validation
+5. **Database Design**: Mongoose schemas with proper relationships and indexing
+6. **Authentication**: JWT-based security with role-based access control
+7. **Responsive Design**: Mobile-first approach with seamless desktop experience
+8. **Theme Consistency**: Dark/light mode support across all components
 
 ### **Contribution Steps**
 1. Fork the repository
@@ -586,6 +655,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ for saving lives through technology**
 
 **BloodBond** - *Connecting blood donors, hospitals, and blood banks for a healthier tomorrow*
+
+### 🆕 **Latest Updates**
+
+- ✅ **Hospital Inventory Management**: Complete independent inventory system for hospitals
+- ✅ **Enhanced Landing Page**: Multi-section home page with interactive features and statistics
+- ✅ **Universal Request Tracking**: Improved tracking system accessible to all user roles  
+- ✅ **Dual Inventory Systems**: Separate inventory management for blood banks and hospitals
+- ✅ **Advanced Dashboard Analytics**: Real-time inventory statistics and blood type breakdowns
+- ✅ **Improved Theme System**: Comprehensive dark/light mode with CSS variables
+- ✅ **Enhanced Navigation**: Role-based navigation with improved user experience
+- ✅ **Audit Trail System**: Complete inventory change logging with detailed history
 
 [![GitHub stars](https://img.shields.io/github/stars/DevSsChar/BloodBond?style=social)](https://github.com/DevSsChar/BloodBond)
 [![GitHub forks](https://img.shields.io/github/forks/DevSsChar/BloodBond?style=social)](https://github.com/DevSsChar/BloodBond/fork)
