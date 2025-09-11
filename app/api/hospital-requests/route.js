@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/route.js';
 import connectDB from '@/db/connectDB.mjs';
-import HospitalRequest from '@/model/HospitalRequest.js';
-import User from '@/model/user.js';
 import BloodInventory from '@/model/BloodInventory.js';
 import HospitalInventory from '@/model/HospitalInventory.js';
 import HospitalInventoryLog from '@/model/HospitalInventoryLog.js';
+import HospitalRequest from '@/model/HospitalRequest.js';
+import User from '@/model/user.js';
+import { getServerSession } from 'next-auth/next';
+import { NextResponse } from 'next/server';
+import { authOptions } from '../auth/[...nextauth]/route.js';
 
 // GET - Fetch hospital requests
 export async function GET(req) {
@@ -26,8 +26,10 @@ export async function GET(req) {
     let filter = {};
     
     if (role === 'hospital') {
+      // Hospitals see only their own requests
       filter.hospital_id = userId;
     } else if (role === 'bloodbank') {
+      // Blood banks see only requests directed specifically to them
       filter.bloodbank_id = userId;
     } else {
       return NextResponse.json({ error: 'Invalid role specified' }, { status: 400 });

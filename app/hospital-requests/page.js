@@ -1,22 +1,22 @@
 "use client"
-import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { 
-  Hospital, 
-  Plus, 
-  User, 
-  Package, 
-  Calendar, 
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Send,
-  Heart,
-  Building2
-} from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useToast } from '@/context/ToastContext';
+import {
+  AlertTriangle,
+  Building2,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Heart,
+  Hospital,
+  Package,
+  Plus,
+  Send,
+  User,
+  XCircle
+} from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 
 const HospitalRequests = () => {
   const { data: session } = useSession();
@@ -57,15 +57,8 @@ const HospitalRequests = () => {
   });
 
   useEffect(() => {
-    // Detect view mode from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const roleParam = urlParams.get('role');
-    if (roleParam === 'bloodbank') {
-      setViewMode('bloodbank');
-    } else {
-      setViewMode('hospital');
-    }
-    
+    // Hospital view only
+    setViewMode('hospital');
     fetchRequests();
     getCurrentLocation();
   }, []);

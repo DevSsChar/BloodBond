@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../../auth/[...nextauth]/route.js';
 import connectDB from '@/db/connectDB.mjs';
-import HospitalRequest from '@/model/HospitalRequest.js';
-import User from '@/model/user.js';
+import BloodBank from '@/model/BloodBank.js';
 import BloodInventory from '@/model/BloodInventory.js';
 import HospitalInventory from '@/model/HospitalInventory.js';
 import HospitalInventoryLog from '@/model/HospitalInventoryLog.js';
+import HospitalRequest from '@/model/HospitalRequest.js';
+import User from '@/model/user.js';
+import { getServerSession } from 'next-auth/next';
+import { NextResponse } from 'next/server';
+import { authOptions } from '../../auth/[...nextauth]/route.js';
 
 export async function POST(req) {
   try {
@@ -32,18 +33,12 @@ export async function POST(req) {
       }, { status: 400 });
     }
 
-    // Find the request
+    // Find the request (don't populate bloodbank_id yet to handle both User ID and BloodBank ID cases)
     const hospitalRequest = await HospitalRequest.findById(request_id)
-      .populate('hospital_id', 'name email')
-      .populate('bloodbank_id', 'name email');
+      .populate('hospital_id', 'name email');
 
     if (!hospitalRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
-    }
-
-    // Verify the request belongs to this blood bank
-    if (hospitalRequest.bloodbank_id._id.toString() !== userId) {
-      return NextResponse.json({ error: 'Access denied. This request is not assigned to your blood bank.' }, { status: 403 });
     }
 
     // Check if request is still pending
@@ -53,6 +48,28 @@ export async function POST(req) {
       }, { status: 400 });
     }
 
+    // Verify this blood bank can respond to this request (for both accepted and rejected)
+    const currentUserBloodBank = await BloodBank.findOne({ user_id: userId });
+    if (!currentUserBloodBank) {
+      return NextResponse.json({ 
+        error: 'Blood bank profile not found' 
+      }, { status: 404 });
+    }
+
+    // The hospital request might have bloodbank_id as either User ID or BloodBank ID
+    const requestedBloodBank = await BloodBank.findOne({
+      $or: [
+        { _id: hospitalRequest.bloodbank_id },
+        { user_id: hospitalRequest.bloodbank_id }
+      ]
+    });
+    
+    if (!requestedBloodBank || requestedBloodBank._id.toString() !== currentUserBloodBank._id.toString()) {
+      return NextResponse.json({ 
+        error: 'This request is not assigned to your blood bank' 
+      }, { status: 403 });
+    }
+
     // Update request status
     hospitalRequest.status = action;
     hospitalRequest.response_message = message;
@@ -60,16 +77,33 @@ export async function POST(req) {
     hospitalRequest.responded_at = new Date();
 
     if (action === 'accepted') {
-      // Check blood inventory availability
+      // Check blood inventory availability using the blood bank ID
+      console.log('Looking for inventory with:', {
+        bloodbank_id: currentUserBloodBank._id,
+        blood_type: hospitalRequest.blood_type,
+        units_requested: hospitalRequest.units_requested
+      });
+      
       const bloodInventory = await BloodInventory.findOne({
-        blood_bank_id: userId,
+        bloodbank_id: currentUserBloodBank._id,
         blood_type: hospitalRequest.blood_type,
         units_available: { $gte: hospitalRequest.units_requested }
       });
 
+      console.log('Found inventory:', bloodInventory);
+      
+      // Also check if there's any inventory for this blood type (regardless of units)
+      const anyInventory = await BloodInventory.findOne({
+        bloodbank_id: currentUserBloodBank._id,
+        blood_type: hospitalRequest.blood_type
+      });
+      
+      console.log('Any inventory for this blood type:', anyInventory);
+
       if (!bloodInventory) {
+        const availableUnits = anyInventory ? anyInventory.units_available : 0;
         return NextResponse.json({ 
-          error: 'Insufficient blood units available in inventory' 
+          error: `Insufficient blood units available in inventory. Available: ${availableUnits} units, Requested: ${hospitalRequest.units_requested} units` 
         }, { status: 400 });
       }
 
