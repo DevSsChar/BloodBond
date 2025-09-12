@@ -17,6 +17,15 @@ const donorSchema = new mongoose.Schema({
     coordinates: { type: [Number], default: [0, 0] } // [longitude, latitude]
   },
   
+  // Request Response Tracking
+  accepted_requests: { type: Number, default: 0 }, // Count of accepted blood requests
+  recent_activity: [{
+    type: { type: String }, // 'request_accepted', 'donation_completed', etc.
+    description: { type: String },
+    date: { type: Date, default: Date.now },
+    details: { type: mongoose.Schema.Types.Mixed } // Additional data
+  }],
+  
   created_at: { type: Date, default: Date.now }
 });
 

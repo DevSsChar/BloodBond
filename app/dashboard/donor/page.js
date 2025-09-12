@@ -31,6 +31,14 @@ const DonorDashboard = () => {
     current_location: { coordinates: [0, 0] }
   });
   const [loading, setLoading] = useState(true);
+  const [donorStats, setDonorStats] = useState({
+    totalDonations: 0,
+    livesSaved: 0,
+    acceptedRequests: 0
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
 
   // Fetch data on component mount
@@ -46,7 +54,8 @@ const DonorDashboard = () => {
       await Promise.all([
         fetchDonationDrives(),
         fetchCriticalSettings(),
-        fetchIncomingRequests()
+        fetchIncomingRequests(),
+        fetchDonorStats()
       ]);
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -107,6 +116,25 @@ const DonorDashboard = () => {
     }
   };
 
+  const fetchDonorStats = async () => {
+    try {
+      const response = await fetch('/api/donors/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setDonorStats({
+          totalDonations: data.totalDonations || 0,
+          livesSaved: data.livesSaved || 0,
+          acceptedRequests: data.acceptedRequests || 0
+        });
+        setRecentActivity(data.recentActivity || []);
+      } else {
+        console.error('Failed to fetch donor stats:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching donor stats:', error);
+    }
+  };
+
 
 
   const updateCriticalSettings = async (updates) => {
@@ -131,6 +159,38 @@ const DonorDashboard = () => {
     } catch (error) {
       console.error('Error updating critical settings:', error);
     }
+  };
+
+  const handleRequestAccepted = (requestDetails) => {
+    // Show success message
+    setSuccessMessage(`🎉 Congratulations! You've accepted a blood request and could potentially save a life! Your response has been sent to ${requestDetails.requester_name || 'the requester'}.`);
+    setShowSuccessMessage(true);
+    
+    // Update stats
+    setDonorStats(prev => ({
+      ...prev,
+      acceptedRequests: prev.acceptedRequests + 1,
+      livesSaved: prev.livesSaved + 1 // Potential life saved
+    }));
+    
+    // Add to recent activity
+    const newActivity = {
+      type: 'request_accepted',
+      description: `Accepted blood request for ${requestDetails.blood_type} blood type`,
+      date: new Date().toISOString(),
+      details: requestDetails
+    };
+    
+    setRecentActivity(prev => [newActivity, ...prev.slice(0, 9)]); // Keep last 10 activities
+    
+    // Auto-hide success message after 10 seconds
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 10000);
+    
+    // Refresh data
+    fetchDonorStats();
+    fetchIncomingRequests();
   };
 
   const participateInDrive = async (driveId) => {
@@ -170,6 +230,29 @@ const DonorDashboard = () => {
     <ProtectedRoute allowedRoles={['user']}>
       <div className="min-h-screen bg-[var(--background)] py-8">
         <div className="container mx-auto px-4 max-w-7xl">
+          {/* Success Message */}
+          {showSuccessMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg relative">
+              <div className="flex items-start">
+                <CheckCircle className="h-6 w-6 text-green-600 mt-0.5 mr-3" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-green-800 mb-2">
+                    🎉 Life-Saving Hero!
+                  </h3>
+                  <p className="text-green-700">
+                    {successMessage}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSuccessMessage(false)}
+                  className="text-green-400 hover:text-green-600"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
+          
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -228,9 +311,22 @@ const DonorDashboard = () => {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'overview' && <OverviewTab criticalSettings={criticalSettings} />}
+          {activeTab === 'overview' && (
+            <OverviewTab 
+              criticalSettings={criticalSettings} 
+              donorStats={donorStats}
+              recentActivity={recentActivity}
+            />
+          )}
           {activeTab === 'drives' && <DrivesTab drives={donationDrives} onParticipate={participateInDrive} />}
-          {activeTab === 'requests' && <RequestsTab requests={incomingRequests} criticalSettings={criticalSettings} />}
+          {activeTab === 'requests' && (
+            <RequestsTab 
+              requests={incomingRequests} 
+              criticalSettings={criticalSettings}
+              onRequestAccepted={handleRequestAccepted}
+              onRefreshRequests={fetchIncomingRequests}
+            />
+          )}
           {activeTab === 'settings' && (
             <SettingsTab 
               settings={criticalSettings} 
@@ -244,15 +340,15 @@ const DonorDashboard = () => {
 };
 
 // Overview Tab Component
-const OverviewTab = ({ criticalSettings }) => (
+const OverviewTab = ({ criticalSettings, donorStats, recentActivity }) => (
   <div className="space-y-8">
     {/* Stats Cards */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       <div className="bg-[var(--card-background)] p-6 rounded-lg border border-[var(--border-color)]">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-[var(--text-secondary)]">Total Donations</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">0</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{donorStats.totalDonations}</p>
           </div>
           <Heart className="h-8 w-8 text-[#ef4444]" />
         </div>
@@ -262,9 +358,19 @@ const OverviewTab = ({ criticalSettings }) => (
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-[var(--text-secondary)]">Lives Saved</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">0</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{donorStats.livesSaved}</p>
           </div>
           <Award className="h-8 w-8 text-[#ef4444]" />
+        </div>
+      </div>
+      
+      <div className="bg-[var(--card-background)] p-6 rounded-lg border border-[var(--border-color)]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-[var(--text-secondary)]">Requests Accepted</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{donorStats.acceptedRequests}</p>
+          </div>
+          <CheckCircle className="h-8 w-8 text-green-600" />
         </div>
       </div>
       
@@ -287,12 +393,38 @@ const OverviewTab = ({ criticalSettings }) => (
           <Activity className="h-5 w-5 mr-2" />
           Recent Activity
         </h2>
-        <div className="text-center py-8">
-          <p className="text-[var(--text-secondary)]">No recent activity</p>
-          <p className="text-sm text-[var(--text-secondary)] mt-2">
-            Start by scheduling your first donation!
-          </p>
-        </div>
+        {recentActivity.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-[var(--text-secondary)]">No recent activity</p>
+            <p className="text-sm text-[var(--text-secondary)] mt-2">
+              Start by accepting blood requests or scheduling your first donation!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {recentActivity.slice(0, 5).map((activity, index) => (
+              <div key={index} className="flex items-start space-x-3 p-3 bg-[var(--background)] rounded-lg">
+                <div className="flex-shrink-0">
+                  {activity.type === 'request_accepted' ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                  ) : activity.type === 'donation_completed' ? (
+                    <Heart className="h-5 w-5 text-red-600 mt-0.5" />
+                  ) : (
+                    <Activity className="h-5 w-5 text-blue-600 mt-0.5" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-[var(--text-primary)] font-medium">
+                    {activity.description}
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">
+                    {new Date(activity.date).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -400,10 +532,10 @@ const DrivesTab = ({ drives, onParticipate }) => (
 );
 
 // Incoming Requests Tab Component
-const RequestsTab = ({ requests, criticalSettings }) => {
+const RequestsTab = ({ requests, criticalSettings, onRequestAccepted, onRefreshRequests }) => {
   const [responding, setResponding] = useState(false);
 
-  const handleResponseToRequest = async (requestId, requestType, action) => {
+  const handleResponseToRequest = async (requestId, requestType, action, requestDetails) => {
     setResponding(true);
     try {
       if (requestType === 'donor_contact_request') {
@@ -417,9 +549,39 @@ const RequestsTab = ({ requests, criticalSettings }) => {
         });
         
         if (response.ok) {
-          alert(`Request ${action}ed successfully!`);
+          if (action === 'accept') {
+            // Update donor stats in database
+            try {
+              await fetch('/api/donors/update-stats', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  incrementAcceptedRequests: true,
+                  activity: {
+                    type: 'request_accepted',
+                    description: `Accepted ${requestDetails.blood_type || 'blood'} request from ${requestDetails.hospital_name || 'hospital'}`,
+                    timestamp: new Date().toISOString(),
+                    details: {
+                      blood_type: requestDetails.blood_type,
+                      hospital: requestDetails.hospital_name,
+                      request_id: requestId
+                    }
+                  }
+                }),
+              });
+            } catch (statsError) {
+              console.error('Error updating donor stats:', statsError);
+            }
+
+            // Call the success handler
+            onRequestAccepted(requestDetails);
+          } else {
+            alert(`Request ${action}ed successfully!`);
+          }
           // Refresh the requests list
-          window.location.reload();
+          onRefreshRequests();
         } else {
           const error = await response.json();
           alert(error.error || `Failed to ${action} request`);
@@ -550,14 +712,14 @@ const RequestsTab = ({ requests, criticalSettings }) => {
                     {request.type === 'donor_contact_request' ? (
                       <div className="space-y-2 mt-3">
                         <button
-                          onClick={() => handleResponseToRequest(request._id, request.type, 'accept')}
+                          onClick={() => handleResponseToRequest(request._id, request.type, 'accept', request)}
                           disabled={responding}
                           className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
                         >
                           {responding ? 'Processing...' : 'Accept Request'}
                         </button>
                         <button
-                          onClick={() => handleResponseToRequest(request._id, request.type, 'reject')}
+                          onClick={() => handleResponseToRequest(request._id, request.type, 'reject', request)}
                           disabled={responding}
                           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
                         >
@@ -566,7 +728,7 @@ const RequestsTab = ({ requests, criticalSettings }) => {
                       </div>
                     ) : (
                       <button 
-                        onClick={() => handleResponseToRequest(request._id, request.type, 'respond')}
+                        onClick={() => handleResponseToRequest(request._id, request.type, 'respond', request)}
                         className="bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full"
                       >
                         Respond to Emergency
