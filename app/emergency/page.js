@@ -1,10 +1,11 @@
 "use client"
 import Link from 'next/link';
-import { Clock, Loader, MapPin, Navigation, Phone, TriangleAlert, Users, CheckCircle, UserCircle } from 'lucide-react';
+import { Clock, Loader, MapPin, Navigation, Phone, TriangleAlert, Users, CheckCircle, UserCircle, Heart, Droplet, XCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
+import { formatCompatibilityForDisplay, getCompatibleBloodTypes } from '@/lib/bloodCompatibility';
 
 const EmergencyPage = () => {
   const { data: session, status } = useSession();
@@ -40,6 +41,7 @@ const EmergencyPage = () => {
   const [searchingBloodBanks, setSearchingBloodBanks] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submittedRequestId, setSubmittedRequestId] = useState('');
+  const [bloodCompatibilityInfo, setBloodCompatibilityInfo] = useState(null);
 
   // Note: Emergency page accessible to all users (logged in or not)
   // No authentication redirect for emergency situations
@@ -138,6 +140,14 @@ const EmergencyPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Update blood compatibility info when blood type changes
+    if (name === 'bloodType' && value) {
+      const compatibilityInfo = formatCompatibilityForDisplay(value);
+      setBloodCompatibilityInfo(compatibilityInfo);
+    } else if (name === 'bloodType' && !value) {
+      setBloodCompatibilityInfo(null);
+    }
   };
 
   // Handle form submission
@@ -443,6 +453,92 @@ const EmergencyPage = () => {
                   <option value="O+">O+</option>
                   <option value="O-">O-</option>
                 </select>
+                
+                {/* Blood Compatibility Display */}
+                {bloodCompatibilityInfo && (
+                  <div className="mt-4 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700 rounded-xl shadow-sm">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                        <Droplet className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Blood Compatibility</h4>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">{bloodCompatibilityInfo.description}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center space-x-2 mb-3">
+                          <Heart className="h-4 w-4 text-red-500" />
+                          <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">Compatible Blood Types</span>
+                          <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
+                            {bloodCompatibilityInfo.compatibilityCount} types
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {bloodCompatibilityInfo.compatibleTypes.map((type, index) => (
+                            <div 
+                              key={index}
+                              className={`relative p-3 rounded-lg text-center font-medium transition-all duration-200 hover:scale-105 ${
+                                type === formData.bloodType 
+                                  ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/50 dark:to-red-800/50 text-red-800 dark:text-red-200 border-2 border-red-300 dark:border-red-600 shadow-md' 
+                                  : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500'
+                              }`}
+                            >
+                              {type === formData.bloodType && (
+                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-xs">★</span>
+                                </div>
+                              )}
+                              <div className="text-lg font-bold">{type}</div>
+                              <div className="text-xs opacity-75">
+                                {type === formData.bloodType ? 'Your Type' : 'Compatible'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {bloodCompatibilityInfo.alternatives.length > 0 && (
+                        <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Alternative Options</span>
+                          </div>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            {bloodCompatibilityInfo.alternatives.join(' • ')}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {bloodCompatibilityInfo.isUniversalRecipient && (
+                        <div className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 p-3 rounded-lg border border-green-200 dark:border-green-700">
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 bg-green-500 rounded-full">
+                              <Heart className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-sm font-semibold text-green-800 dark:text-green-200">Universal Recipient</span>
+                          </div>
+                          <p className="text-xs text-green-700 dark:text-green-300 mt-1">You can receive blood from any donor type</p>
+                        </div>
+                      )}
+                      
+                      {bloodCompatibilityInfo.isUniversalDonor && (
+                        <div className="bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 p-3 rounded-lg border border-orange-200 dark:border-orange-700">
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 bg-orange-500 rounded-full">
+                              <Heart className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-sm font-semibold text-orange-800 dark:text-orange-200">Universal Donor Type</span>
+                          </div>
+                          <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">Your blood type is very valuable for donations</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div>
@@ -582,21 +678,115 @@ const EmergencyPage = () => {
                           
                           {/* Blood Type Availability */}
                           {formData.bloodType && (
-                            <div className="mt-2 text-sm">
+                            <div className="mt-4 space-y-3">
                               {bank.source === 'database' ? (
-                                bank.hasRequestedBloodType ? (
-                                  <span className="text-green-600 font-medium">
-                                    ✅ {formData.bloodType} Available ({bank.availableUnits} units)
-                                  </span>
-                                ) : (
-                                  <span className="text-orange-600">
-                                    ❌ {formData.bloodType} Not Available
-                                  </span>
-                                )
+                                <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                  {/* Exact Match Status */}
+                                  <div className="flex items-center justify-between mb-3">
+                                    {bank.hasRequestedBloodType ? (
+                                      <div className="flex items-center space-x-3">
+                                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <div>
+                                          <div className="font-semibold text-green-800 dark:text-green-200">
+                                            {formData.bloodType} Available
+                                          </div>
+                                          <div className="text-sm text-green-600 dark:text-green-400">
+                                            {bank.availableUnits} units in stock
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center space-x-3">
+                                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                          <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                        </div>
+                                        <div>
+                                          <div className="font-semibold text-red-800 dark:text-red-200">
+                                            {formData.bloodType} Not Available
+                                          </div>
+                                          <div className="text-sm text-red-600 dark:text-red-400">
+                                            Exact match not in stock
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Compatible Types */}
+                                  {bank.compatibleInventory && bank.compatibleInventory.length > 0 && (
+                                    <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                                      <div className="flex items-center space-x-2 mb-3">
+                                        <Droplet className="h-4 w-4 text-blue-500" />
+                                        <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">Compatible Types Available</span>
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                        {bank.compatibleInventory.map((inv, idx) => (
+                                          <div 
+                                            key={idx}
+                                            className={`p-2 rounded-lg text-center border transition-all duration-200 ${
+                                              inv.isExactMatch 
+                                                ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-300 dark:border-green-600' 
+                                                : 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-300 dark:border-blue-600 hover:from-blue-100 hover:to-blue-200'
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-center space-x-1">
+                                              {inv.isExactMatch && <span className="text-green-600 text-xs">★</span>}
+                                              <span className={`font-bold text-sm ${
+                                                inv.isExactMatch 
+                                                  ? 'text-green-700 dark:text-green-300' 
+                                                  : 'text-blue-700 dark:text-blue-300'
+                                              }`}>
+                                                {inv.blood_type}
+                                              </span>
+                                            </div>
+                                            <div className={`text-xs ${
+                                              inv.isExactMatch 
+                                                ? 'text-green-600 dark:text-green-400' 
+                                                : 'text-blue-600 dark:text-blue-400'
+                                            }`}>
+                                              {inv.units_available} units
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg">
+                                        <div className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                          Total Compatible: {bank.totalCompatibleUnits} units
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {!bank.hasRequestedBloodType && !bank.hasCompatibleBloodType && (
+                                    <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 p-3 rounded-lg border border-gray-300 dark:border-gray-600">
+                                      <div className="flex items-center space-x-2">
+                                        <Phone className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                        <span className="font-medium text-gray-800 dark:text-gray-200">Contact Required</span>
+                                      </div>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        No compatible blood types currently in database - Call to verify availability
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                               ) : (
-                                <span className="text-blue-600">
-                                  ❓ {formData.bloodType} - Call to confirm availability
-                                </span>
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-700">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                      <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                      <div className="font-semibold text-blue-800 dark:text-blue-200">
+                                        {formData.bloodType} - Call to Confirm
+                                      </div>
+                                      <div className="text-sm text-blue-600 dark:text-blue-400">
+                                        Real-time data - Contact blood bank directly for availability
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           )}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
 import BloodBank from "@/model/BloodBank.js";
 import BloodInventory from "@/model/BloodInventory.js";
+import { getCompatibleBloodTypes } from "@/lib/bloodCompatibility.js";
 
 export async function POST(req) {
   try {
@@ -33,6 +34,11 @@ export async function POST(req) {
     // 1. Get blood banks from your database
     const dbBloodBanks = await BloodBank.find({});
     console.log(`Found ${dbBloodBanks.length} blood banks in database`);
+    
+    // Debug: Log all blood bank names and coordinates
+    dbBloodBanks.forEach(bank => {
+      console.log(`DB Bank: ${bank.name} at (${bank.latitude}, ${bank.longitude})`);
+    });
 
     // 2. Get real-time blood banks from LocationIQ Places API
     const realTimeBloodBanks = await fetchRealTimeBloodBanks(latitude, longitude);
@@ -44,14 +50,28 @@ export async function POST(req) {
       ...await Promise.all(dbBloodBanks.map(async (bank) => {
         let inventory = null;
         let hasRequestedBloodType = false;
+        let compatibleInventory = [];
+        let hasCompatibleBloodType = false;
         
         if (bloodType) {
+          // Get compatible blood types for this request
+          const compatibleTypes = getCompatibleBloodTypes(bloodType);
+          
+          // Check for exact blood type match
           inventory = await BloodInventory.findOne({ 
             bloodbank_id: bank._id, 
             blood_type: bloodType,
             units_available: { $gt: 0 }
           });
           hasRequestedBloodType = !!inventory;
+          
+          // Check for compatible blood types
+          compatibleInventory = await BloodInventory.find({
+            bloodbank_id: bank._id,
+            blood_type: { $in: compatibleTypes },
+            units_available: { $gt: 0 }
+          });
+          hasCompatibleBloodType = compatibleInventory.length > 0;
         }
         
         return {
@@ -64,7 +84,14 @@ export async function POST(req) {
           distance: calculateDistance(latitude, longitude, bank.latitude, bank.longitude),
           source: 'database',
           hasRequestedBloodType,
+          hasCompatibleBloodType,
           availableUnits: inventory ? inventory.units_available : 0,
+          compatibleInventory: compatibleInventory.map(inv => ({
+            blood_type: inv.blood_type,
+            units_available: inv.units_available,
+            isExactMatch: inv.blood_type === bloodType
+          })),
+          totalCompatibleUnits: compatibleInventory.reduce((sum, inv) => sum + inv.units_available, 0),
           inventory
         };
       })),
@@ -80,25 +107,41 @@ export async function POST(req) {
         distance: calculateDistance(latitude, longitude, bank.geometry.location.lat, bank.geometry.location.lng),
         source: 'locationiq',
         hasRequestedBloodType: null, // Unknown for real-time data
+        hasCompatibleBloodType: null, // Unknown for real-time data
         availableUnits: null,
+        compatibleInventory: [],
+        totalCompatibleUnits: null,
         place_id: bank.place_id,
         types: bank.types
       }))
     ];
 
     // 4. Filter by emergency distance and remove duplicates
-    const MAX_EMERGENCY_DISTANCE = 25;
+    const MAX_EMERGENCY_DISTANCE = 50; // Increased from 25km to include more blood banks
     const uniqueBloodBanks = removeDuplicateBloodBanks(allBloodBanks);
+    
+    // Debug: Log all blood banks before distance filtering
+    console.log('All blood banks before distance filtering:');
+    uniqueBloodBanks.forEach(bank => {
+      console.log(`${bank.name}: ${bank.distance.toFixed(2)}km (${bank.distance <= MAX_EMERGENCY_DISTANCE ? 'INCLUDED' : 'EXCLUDED'})`);
+    });
     
     let filteredBloodBanks = uniqueBloodBanks
       .filter(bank => bank.distance <= MAX_EMERGENCY_DISTANCE)
       .sort((a, b) => {
-        // Priority: Database banks with blood type > Database banks > Google Places banks by distance
-        const aScore = (a.source === 'database' ? 10 : 5) + 
-                      (a.hasRequestedBloodType ? 5 : 0) + 
+        // Enhanced priority system:
+        // 1. Database banks with exact blood type match (highest priority)
+        // 2. Database banks with compatible blood types
+        // 3. Database banks without blood type info
+        // 4. Real-time banks by distance
+        
+        const aScore = (a.source === 'database' ? 10 : 3) + 
+                      (a.hasRequestedBloodType ? 10 : 0) + 
+                      (a.hasCompatibleBloodType && !a.hasRequestedBloodType ? 5 : 0) + 
                       (1 / (a.distance + 1));
-        const bScore = (b.source === 'database' ? 10 : 5) + 
-                      (b.hasRequestedBloodType ? 5 : 0) + 
+        const bScore = (b.source === 'database' ? 10 : 3) + 
+                      (b.hasRequestedBloodType ? 10 : 0) + 
+                      (b.hasCompatibleBloodType && !b.hasRequestedBloodType ? 5 : 0) + 
                       (1 / (b.distance + 1));
         return bScore - aScore;
       });
