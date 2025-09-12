@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
-import DonationDrive from "@/models/DonationDrive";
-import User from "@/models/User";
-import HospitalProfile from "@/models/HospitalProfile";
-import BloodBank from "@/models/BloodBank";
+import connectDB from "@/db/connectDB.mjs";
+import DonationDrive from "@/model/DonationDrive.js";
+import User from "@/model/user.js";
+import HospitalProfile from "@/model/HospitalProfile.js";
+import BloodBank from "@/model/BloodBank.js";
 
 export async function POST(req) {
   await connectDB();

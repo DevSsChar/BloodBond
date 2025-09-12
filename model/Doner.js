@@ -9,7 +9,27 @@ const donorSchema = new mongoose.Schema({
   weight: { type: Number, required: true },
   emergency_contact_mobile: { type: String, required: true },
   total_donations: { type: Number, default: 0 }, // donation count
+  
+  // Critical Service Fields
+  is_critical_ready: { type: Boolean, default: false }, // Ready for emergency requests
+  current_location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] } // [longitude, latitude]
+  },
+  
+  // Request Response Tracking
+  accepted_requests: { type: Number, default: 0 }, // Count of accepted blood requests
+  recent_activity: [{
+    type: { type: String }, // 'request_accepted', 'donation_completed', etc.
+    description: { type: String },
+    date: { type: Date, default: Date.now },
+    details: { type: mongoose.Schema.Types.Mixed } // Additional data
+  }],
+  
   created_at: { type: Date, default: Date.now }
 });
+
+// Add geospatial index for location-based queries
+donorSchema.index({ current_location: '2dsphere' });
 
 export default mongoose.models.Donor || mongoose.model("Donor", donorSchema);

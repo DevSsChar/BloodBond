@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
 import Donation from "@/model/Donation.js";
 import User from "@/model/user.js";
-import Doner from "@/model/Doner.js";
+import Donor from "@/model/Doner.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 export async function POST(req) {
