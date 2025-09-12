@@ -164,7 +164,7 @@ const Navbar = () => {
       items.push(
         { href: '/requests', icon: TriangleAlert, label: 'Blood Requests', active: pathname === '/requests' },
         { href: '/hospital-request-acceptance', icon: Hospital, label: 'Hospital Request Acceptance', active: pathname === '/hospital-request-acceptance' },
-        { href: '/emergency-call', icon: TriangleAlert, label: 'Call Donors', active: pathname === '/emergency-call' },
+        // { href: '/emergency-call', icon: TriangleAlert, label: 'Call Donors', active: pathname === '/emergency-call' },
         { href: '/inventory', icon: Building, label: 'Blood Inventory', active: pathname === '/inventory' },
         { href: '/donors', icon: Users, label: 'View Donors', active: pathname === '/donors' },
         { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: pathname === '/dashboard/bloodbank' }
