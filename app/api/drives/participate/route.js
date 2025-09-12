@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
 import DonationDrive from "@/model/DonationDrive.js";
 import Donor from "@/model/Doner.js";
+import DriveRegistration from "@/model/DriveRegistration.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 // Register for a donation drive
@@ -53,12 +54,37 @@ export async function POST(req) {
       );
     }
 
-    // Add participation record (for now, just return success)
-    // In a full implementation, you'd create a DriveParticipation model
+    // Check if already registered
+    const existingRegistration = await DriveRegistration.findOne({
+      donor_id: auth.userId,
+      drive_id: drive_id
+    });
+
+    if (existingRegistration) {
+      return NextResponse.json(
+        { error: "You are already registered for this donation drive" },
+        { status: 400 }
+      );
+    }
+
+    // Create new registration
+    const registration = new DriveRegistration({
+      donor_id: auth.userId,
+      drive_id: drive_id,
+      status: 'registered'
+    });
+
+    await registration.save();
     
     return NextResponse.json({ 
+      success: true,
       message: "Successfully registered for donation drive",
-      drive_id: drive_id
+      registration: {
+        id: registration._id,
+        drive_id: drive_id,
+        status: registration.status,
+        registration_date: registration.registration_date
+      }
     }, { status: 201 });
   } catch (error) {
     console.error("Error registering for drive:", error);

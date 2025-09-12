@@ -167,6 +167,7 @@ const Navbar = () => {
         // { href: '/emergency-call', icon: TriangleAlert, label: 'Call Donors', active: pathname === '/emergency-call' },
         { href: '/inventory', icon: Building, label: 'Blood Inventory', active: pathname === '/inventory' },
         { href: '/donors', icon: Users, label: 'View Donors', active: pathname === '/donors' },
+        { href: '/dashboard/bloodbank/drives', icon: Droplet, label: 'Donation Drives', active: pathname === '/dashboard/bloodbank/drives' },
         { href: '/dashboard/bloodbank', icon: Activity, label: 'Blood Bank Dashboard', active: pathname === '/dashboard/bloodbank' }
       );
     } else if (isHospital) {
