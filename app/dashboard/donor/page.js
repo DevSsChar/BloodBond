@@ -9,6 +9,7 @@ import {
   Bell, 
   Settings, 
   Users, 
+  User,
   Clock, 
   Phone, 
   Mail, 
@@ -399,108 +400,212 @@ const DrivesTab = ({ drives, onParticipate }) => (
 );
 
 // Incoming Requests Tab Component
-const RequestsTab = ({ requests, criticalSettings }) => (
-  <div className="space-y-6">
-    <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold text-[var(--text-primary)]">Incoming Emergency Requests</h2>
-      <div className={`px-3 py-1 rounded-full text-sm ${criticalSettings.is_critical_ready 
-        ? 'bg-green-100 text-green-800' 
-        : 'bg-gray-100 text-gray-600'}`}>
-        {criticalSettings.is_critical_ready ? 'Emergency Service ON' : 'Emergency Service OFF'}
-      </div>
-    </div>
+const RequestsTab = ({ requests, criticalSettings }) => {
+  const [responding, setResponding] = useState(false);
 
-    {!criticalSettings.is_critical_ready ? (
-      <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
-        <Bell className="h-16 w-16 text-[var(--text-secondary)] mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Emergency Service Disabled</h3>
-        <p className="text-[var(--text-secondary)] mb-4">
-          Enable emergency service in settings to receive urgent blood requests near your location.
-        </p>
-      </div>
-    ) : requests.length === 0 ? (
-      <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
-        <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No Emergency Requests</h3>
-        <p className="text-[var(--text-secondary)]">
-          Great! There are no emergency requests in your area.
-        </p>
-      </div>
-    ) : (
-      <div className="space-y-4">
-        {requests.map(request => (
-          <div key={request._id} className="bg-[var(--card-background)] p-6 rounded-lg border-l-4 border-l-red-500 border border-[var(--border-color)]">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  request.urgency === 'critical' 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-orange-100 text-orange-800'
-                }`}>
-                  {request.urgency.toUpperCase()}
-                </span>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center space-x-1 text-sm text-[var(--text-secondary)]">
-                  <Navigation className="h-4 w-4" />
-                  <span>{request.distance}km away</span>
-                </div>
-                <div className="text-xs text-[var(--text-secondary)]">
-                  {new Date(request.created_at).toLocaleString()}
-                </div>
-              </div>
-            </div>
+  const handleResponseToRequest = async (requestId, requestType, action) => {
+    setResponding(true);
+    try {
+      if (requestType === 'donor_contact_request') {
+        const response = await fetch('/api/donor-contact-request/respond', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            requestId: requestId, 
+            action: action // 'accept' or 'reject'
+          })
+        });
+        
+        if (response.ok) {
+          alert(`Request ${action}ed successfully!`);
+          // Refresh the requests list
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          alert(error.error || `Failed to ${action} request`);
+        }
+      } else {
+        // Handle other request types (emergency, hospital, etc.)
+        alert('Emergency response feature coming soon!');
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing request:`, error);
+      alert(`Failed to ${action} request`);
+    } finally {
+      setResponding(false);
+    }
+  };
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold text-[var(--text-primary)] mb-2">Request Details</h4>
-                <div className="space-y-1 text-sm">
-                  <p><strong>Blood Type:</strong> <span className="text-[#ef4444] font-bold">{request.blood_type}</span></p>
-                  <p><strong>Units Needed:</strong> {request.units_needed}</p>
-                  {request.patient_name && <p><strong>Patient:</strong> {request.patient_name}</p>}
-                  {request.hospital_name && <p><strong>Hospital:</strong> {request.hospital_name}</p>}
-                  <p><strong>Location:</strong> {request.location}</p>
-                </div>
-              </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Incoming Requests</h2>
+        <div className={`px-3 py-1 rounded-full text-sm ${criticalSettings.is_critical_ready 
+          ? 'bg-green-100 text-green-800' 
+          : 'bg-gray-100 text-gray-600'}`}>
+          {criticalSettings.is_critical_ready ? 'Emergency Service ON' : 'Emergency Service OFF'}
+        </div>
+      </div>
 
-              <div>
-                <h4 className="font-semibold text-[var(--text-primary)] mb-2">Contact Information</h4>
-                <div className="space-y-2 text-sm">
-                  {request.contact_email && (
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-4 w-4 text-[var(--text-secondary)]" />
-                      <span>{request.contact_email}</span>
+      {requests.length === 0 ? (
+        <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
+          <Bell className="h-16 w-16 text-[var(--text-secondary)] mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No Incoming Requests</h3>
+          <p className="text-[var(--text-secondary)]">
+            {!criticalSettings.is_critical_ready 
+              ? "Enable emergency service in settings to receive urgent blood requests near your location."
+              : "Great! There are no requests at the moment."
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {requests.map(request => (
+            <div 
+              key={request._id} 
+              className={`bg-[var(--card-background)] p-6 rounded-lg border-l-4 border border-[var(--border-color)] ${
+                request.type === 'donor_contact_request' 
+                  ? 'border-l-blue-500' 
+                  : request.urgency === 'critical' 
+                    ? 'border-l-red-500' 
+                    : 'border-l-orange-500'
+              }`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  {request.type === 'donor_contact_request' ? (
+                    <User className="h-5 w-5 text-blue-500" />
+                  ) : (
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                  )}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    request.urgency === 'critical' 
+                      ? 'bg-red-100 text-red-800' 
+                      : request.urgency === 'high'
+                        ? 'bg-orange-100 text-orange-800'
+                        : request.urgency === 'urgent'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {request.urgency.toUpperCase()}
+                  </span>
+                  {request.type === 'donor_contact_request' && (
+                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                      Direct Request
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  {request.distance > 0 && (
+                    <div className="flex items-center space-x-1 text-sm text-[var(--text-secondary)]">
+                      <Navigation className="h-4 w-4" />
+                      <span>{request.distance}km away</span>
                     </div>
                   )}
-                  <button className="bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full">
-                    Respond to Request
-                  </button>
+                  <div className="text-xs text-[var(--text-secondary)]">
+                    {new Date(request.created_at).toLocaleString()}
+                  </div>
+                  {request.expires_at && (
+                    <div className="text-xs text-red-500">
+                      Expires: {new Date(request.expires_at).toLocaleString()}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold text-[var(--text-primary)] mb-2">Request Details</h4>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Blood Type:</strong> <span className="text-[#ef4444] font-bold">{request.blood_type}</span></p>
+                    {request.units_needed && <p><strong>Units Needed:</strong> {request.units_needed}</p>}
+                    {request.patient_name && <p><strong>Patient:</strong> {request.patient_name}</p>}
+                    {request.hospital_name && <p><strong>Hospital:</strong> {request.hospital_name}</p>}
+                    {request.requester_name && <p><strong>Requested by:</strong> {request.requester_name}</p>}
+                    {request.requester_role && (
+                      <p><strong>Role:</strong> 
+                        <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                          request.requester_role === 'bloodbank' 
+                            ? 'bg-red-100 text-red-700' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {request.requester_role}
+                        </span>
+                      </p>
+                    )}
+                    {request.location && <p><strong>Location:</strong> {request.location}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-[var(--text-primary)] mb-2">Contact & Actions</h4>
+                  <div className="space-y-2 text-sm">
+                    {request.contact_email && (
+                      <div className="flex items-center space-x-2">
+                        <Mail className="h-4 w-4 text-[var(--text-secondary)]" />
+                        <span>{request.contact_email}</span>
+                      </div>
+                    )}
+                    
+                    {request.type === 'donor_contact_request' ? (
+                      <div className="space-y-2 mt-3">
+                        <button
+                          onClick={() => handleResponseToRequest(request._id, request.type, 'accept')}
+                          disabled={responding}
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
+                        >
+                          {responding ? 'Processing...' : 'Accept Request'}
+                        </button>
+                        <button
+                          onClick={() => handleResponseToRequest(request._id, request.type, 'reject')}
+                          disabled={responding}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
+                        >
+                          {responding ? 'Processing...' : 'Reject Request'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => handleResponseToRequest(request._id, request.type, 'respond')}
+                        className="bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full"
+                      >
+                        Respond to Emergency
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {request.message && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-sm text-blue-800">
+                    <strong>Message:</strong> {request.message}
+                  </p>
+                </div>
+              )}
+
+              {request.emergency_details && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                  <p className="text-sm text-red-800">
+                    <strong>Emergency Details:</strong> {request.emergency_details}
+                  </p>
+                </div>
+              )}
+
+              {request.patient_condition && (
+                <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded">
+                  <p className="text-sm text-orange-800">
+                    <strong>Patient Condition:</strong> {request.patient_condition}
+                  </p>
+                </div>
+              )}
             </div>
-
-            {request.emergency_details && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
-                <p className="text-sm text-red-800">
-                  <strong>Emergency Details:</strong> {request.emergency_details}
-                </p>
-              </div>
-            )}
-
-            {request.patient_condition && (
-              <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded">
-                <p className="text-sm text-orange-800">
-                  <strong>Patient Condition:</strong> {request.patient_condition}
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Settings Tab Component (With Location)
 const SettingsTab = ({ settings, onUpdateSettings }) => {
@@ -701,7 +806,7 @@ const SettingsTab = ({ settings, onUpdateSettings }) => {
             <h4 className="font-medium text-yellow-800">Important Information</h4>
             <p className="text-sm text-yellow-700 mt-1">
               When emergency service is enabled, you may receive critical blood request notifications. 
-              These requests are time-sensitive and could help save lives. Please ensure you're available 
+              These requests are time-sensitive and could help save lives. Please ensure you are available 
               to respond promptly when this service is active.
             </p>
           </div>

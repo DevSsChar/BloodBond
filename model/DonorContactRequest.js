@@ -8,7 +8,7 @@ const donorContactRequestSchema = new mongoose.Schema({
   },
   donorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Doner',
+    ref: 'Donor', // Changed from 'Doner' to 'Donor'
     required: true
   },
   bloodType: {

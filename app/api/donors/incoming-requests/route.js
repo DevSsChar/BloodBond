@@ -1,26 +1,27 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
 import Donor from "@/model/Doner.js";
-import BloodRequest from "@/model/BloodRequest.js";
-import HospitalRequest from "@/model/HospitalRequest.js";
-import { authenticateRole } from "@/lib/roleAuth.js";
+import DonorContactRequest from "@/model/DonorContactRequest.js";
+import User from "@/model/user.js";
+import { getToken } from "next-auth/jwt";
 
-// Get incoming urgent requests near donor's location
 export async function GET(req) {
-  // Protect route - only donors can view their incoming requests
-  const auth = await authenticateRole(req, ['user']);
-  if (!auth.success) {
-    return NextResponse.json(
-      { error: auth.error },
-      { status: auth.status }
-    );
-  }
-
-  await connectDB();
-
   try {
-    // Find donor and their critical service settings
-    const donor = await Donor.findOne({ user_id: auth.userId });
+    await connectDB();
+    
+    // Get the JWT token to identify the current user
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    
+    if (!token || !token.userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - No valid session" },
+        { status: 401 }
+      );
+    }
+
+    // Find the donor profile for this user
+    const donor = await Donor.findOne({ user_id: token.userId });
+    
     if (!donor) {
       return NextResponse.json(
         { error: "Donor profile not found" },
@@ -28,122 +29,48 @@ export async function GET(req) {
       );
     }
 
-    // If donor is not ready for critical service, return empty array
-    if (!donor.is_critical_ready) {
-      return NextResponse.json({
-        message: "Critical service is disabled",
-        requests: []
-      }, { status: 200 });
-    }
+    console.log("🔵 Fetching requests for donor:", donor._id);
 
-    // Get donor's location and service radius
-    const donorLocation = donor.current_location;
-    const serviceRadius = donor.critical_service_radius || 10;
-    
-    if (!donorLocation || !donorLocation.coordinates || 
-        donorLocation.coordinates[0] === 0 && donorLocation.coordinates[1] === 0) {
-      return NextResponse.json({
-        message: "Location not set",
-        requests: []
-      }, { status: 200 });
-    }
+    // Fetch DonorContactRequests made to this specific donor
+    const donorContactRequests = await DonorContactRequest.find({
+      donorId: donor._id,
+      status: { $in: ['pending', 'accepted'] }, // Only show active requests
+      expiresAt: { $gt: new Date() } // Only non-expired requests
+    })
+    .populate('requesterId', 'name email role')
+    .sort({ requestDate: -1 })
+    .lean();
 
-    const [donorLng, donorLat] = donorLocation.coordinates;
+    console.log("🔵 Found DonorContactRequests:", donorContactRequests.length);
 
-    // Helper function to calculate distance using Haversine formula
-    const calculateDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371; // Earth's radius in kilometers
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    };
+    // Transform DonorContactRequests to match the expected format
+    const transformedRequests = donorContactRequests.map(request => ({
+      _id: request._id,
+      type: 'donor_contact_request',
+      blood_type: request.bloodType,
+      urgency: request.urgencyLevel.toLowerCase(),
+      message: request.message,
+      requester_name: request.requesterId?.name,
+      requester_email: request.requesterId?.email,
+      requester_role: request.requesterId?.role,
+      contact_email: request.requesterId?.email,
+      created_at: request.requestDate,
+      expires_at: request.expiresAt,
+      status: request.status,
+      distance: 0 // Not applicable for direct requests
+    }));
 
-    // Find urgent blood requests that match donor's blood type and are within range
-    const urgentRequests = [];
-
-    // Check BloodRequest collection for urgent requests
-    const bloodRequests = await BloodRequest.find({
-      status: 'pending',
-      is_urgent: true,
-      blood_type: donor.blood_type
-    }).populate('user_id', 'name email').sort({ created_at: -1 });
-
-    for (const request of bloodRequests) {
-      if (request.location && request.location.coordinates) {
-        const [reqLng, reqLat] = request.location.coordinates;
-        const distance = calculateDistance(donorLat, donorLng, reqLat, reqLng);
-        
-        if (distance <= serviceRadius) {
-          urgentRequests.push({
-            _id: request._id,
-            type: 'blood_request',
-            blood_type: request.blood_type,
-            units_needed: request.units_needed,
-            urgency: 'urgent',
-            patient_name: request.user_id?.name || 'Anonymous',
-            contact_email: request.user_id?.email,
-            location: request.hospital_location || 'Not specified',
-            distance: Math.round(distance * 10) / 10, // Round to 1 decimal
-            created_at: request.created_at,
-            emergency_details: request.emergency_details
-          });
-        }
-      }
-    }
-
-    // Check HospitalRequest collection for urgent patient requests
-    const hospitalRequests = await HospitalRequest.find({
-      status: 'pending',
-      request_type: 'patient',
-      blood_type: donor.blood_type
-    }).populate('hospital_id', 'name email').sort({ created_at: -1 });
-
-    for (const request of hospitalRequests) {
-      if (request.hospital_location && 
-          typeof request.hospital_location === 'object' && 
-          request.hospital_location.coordinates) {
-        const [reqLng, reqLat] = request.hospital_location.coordinates;
-        const distance = calculateDistance(donorLat, donorLng, reqLat, reqLng);
-        
-        if (distance <= serviceRadius) {
-          urgentRequests.push({
-            _id: request._id,
-            type: 'hospital_request',
-            blood_type: request.blood_type,
-            units_needed: request.units_needed,
-            urgency: 'critical',
-            hospital_name: request.hospital_id?.name || 'Unknown Hospital',
-            contact_email: request.hospital_id?.email,
-            location: request.hospital_location.address || 'Hospital location',
-            distance: Math.round(distance * 10) / 10,
-            created_at: request.created_at,
-            patient_name: request.patient_details?.name,
-            patient_condition: request.patient_details?.condition
-          });
-        }
-      }
-    }
-
-    // Sort by distance (closest first)
-    urgentRequests.sort((a, b) => a.distance - b.distance);
+    console.log("✅ Transformed requests:", transformedRequests.length);
 
     return NextResponse.json({
-      requests: urgentRequests.slice(0, 10), // Limit to 10 most recent/closest
-      total: urgentRequests.length,
-      donor_location: {
-        latitude: donorLat,
-        longitude: donorLng
-      },
-      service_radius: serviceRadius
-    }, { status: 200 });
+      success: true,
+      requests: transformedRequests
+    });
+
   } catch (error) {
-    console.error("Error fetching incoming requests:", error);
+    console.error("❌ Error fetching incoming requests:", error);
     return NextResponse.json(
-      { error: "Failed to fetch incoming requests" },
+      { error: "Failed to fetch incoming requests", details: error.message },
       { status: 500 }
     );
   }
