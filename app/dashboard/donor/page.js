@@ -26,6 +26,8 @@ const DonorDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [donationDrives, setDonationDrives] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
+  const [acceptedRequests, setAcceptedRequests] = useState([]);
+  const [rejectedRequests, setRejectedRequests] = useState([]);
   const [criticalSettings, setCriticalSettings] = useState({
     is_critical_ready: false,
     current_location: { coordinates: [0, 0] }
@@ -109,7 +111,9 @@ const DonorDashboard = () => {
       const response = await fetch('/api/donors/incoming-requests');
       if (response.ok) {
         const data = await response.json();
-        setIncomingRequests(data.requests || []);
+        setIncomingRequests(data.pendingRequests || []);
+        setAcceptedRequests(data.acceptedRequests || []);
+        setRejectedRequests(data.rejectedRequests || []);
       }
     } catch (error) {
       console.error('Error fetching incoming requests:', error);
@@ -321,7 +325,9 @@ const DonorDashboard = () => {
           {activeTab === 'drives' && <DrivesTab drives={donationDrives} onParticipate={participateInDrive} />}
           {activeTab === 'requests' && (
             <RequestsTab 
-              requests={incomingRequests} 
+              pendingRequests={incomingRequests}
+              acceptedRequests={acceptedRequests}
+              rejectedRequests={rejectedRequests}
               criticalSettings={criticalSettings}
               onRequestAccepted={handleRequestAccepted}
               onRefreshRequests={fetchIncomingRequests}
@@ -531,9 +537,10 @@ const DrivesTab = ({ drives, onParticipate }) => (
   </div>
 );
 
-// Incoming Requests Tab Component
-const RequestsTab = ({ requests, criticalSettings, onRequestAccepted, onRefreshRequests }) => {
+// Requests Tab Component with History
+const RequestsTab = ({ pendingRequests, acceptedRequests, rejectedRequests, criticalSettings, onRequestAccepted, onRefreshRequests }) => {
   const [responding, setResponding] = useState(false);
+  const [activeRequestTab, setActiveRequestTab] = useState('pending');
 
   const handleResponseToRequest = async (requestId, requestType, action, requestDetails) => {
     setResponding(true);
@@ -598,10 +605,155 @@ const RequestsTab = ({ requests, criticalSettings, onRequestAccepted, onRefreshR
     }
   };
 
+  // Helper function to render request cards
+  const renderRequestCard = (request, isHistory = false) => (
+    <div 
+      key={request._id} 
+      className={`bg-[var(--card-background)] p-6 rounded-lg border-l-4 border border-[var(--border-color)] ${
+        request.type === 'donor_contact_request' 
+          ? 'border-l-blue-500' 
+          : request.urgency === 'critical' 
+            ? 'border-l-red-500' 
+            : 'border-l-orange-500'
+      }`}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          {request.type === 'donor_contact_request' ? (
+            <User className="h-5 w-5 text-blue-500" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+          )}
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            request.urgency === 'critical' 
+              ? 'bg-red-100 text-red-800' 
+              : request.urgency === 'high'
+                ? 'bg-orange-100 text-orange-800'
+                : request.urgency === 'urgent'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-blue-100 text-blue-800'
+          }`}>
+            {request.urgency.toUpperCase()}
+          </span>
+          {request.type === 'donor_contact_request' && (
+            <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+              Direct Request
+            </span>
+          )}
+          {isHistory && (
+            <span className={`px-2 py-1 text-xs rounded-full ${
+              request.status === 'accepted' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {request.status.toUpperCase()}
+            </span>
+          )}
+        </div>
+        <div className="text-right">
+          {request.distance > 0 && (
+            <div className="flex items-center space-x-1 text-sm text-[var(--text-secondary)]">
+              <Navigation className="h-4 w-4" />
+              <span>{request.distance}km away</span>
+            </div>
+          )}
+          <div className="text-xs text-[var(--text-secondary)]">
+            {isHistory && request.responded_at 
+              ? `Responded: ${new Date(request.responded_at).toLocaleString()}`
+              : `Created: ${new Date(request.created_at).toLocaleString()}`
+            }
+          </div>
+          {!isHistory && request.expires_at && (
+            <div className="text-xs text-red-500">
+              Expires: {new Date(request.expires_at).toLocaleString()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h4 className="font-semibold text-[var(--text-primary)] mb-2">Request Details</h4>
+          <div className="space-y-1 text-sm">
+            <p><strong>Blood Type:</strong> <span className="text-[#ef4444] font-bold">{request.blood_type}</span></p>
+            {request.units_needed && <p><strong>Units Needed:</strong> {request.units_needed}</p>}
+            {request.patient_name && <p><strong>Patient:</strong> {request.patient_name}</p>}
+            {request.hospital_name && <p><strong>Hospital:</strong> {request.hospital_name}</p>}
+            {request.requester_name && <p><strong>Requested by:</strong> {request.requester_name}</p>}
+            {request.requester_role && (
+              <p><strong>Role:</strong> 
+                <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                  request.requester_role === 'bloodbank' 
+                    ? 'bg-red-100 text-red-700' 
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {request.requester_role}
+                </span>
+              </p>
+            )}
+            {request.location && <p><strong>Location:</strong> {request.location}</p>}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-semibold text-[var(--text-primary)] mb-2">Contact & Actions</h4>
+          <div className="space-y-2 text-sm">
+            {request.contact_email && (
+              <div className="flex items-center space-x-2">
+                <Mail className="h-4 w-4 text-[var(--text-secondary)]" />
+                <span>{request.contact_email}</span>
+              </div>
+            )}
+            
+            {!isHistory && request.type === 'donor_contact_request' ? (
+              <div className="space-y-2 mt-3">
+                <button
+                  onClick={() => handleResponseToRequest(request._id, request.type, 'accept', request)}
+                  disabled={responding}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
+                >
+                  {responding ? 'Processing...' : 'Accept Request'}
+                </button>
+                <button
+                  onClick={() => handleResponseToRequest(request._id, request.type, 'reject', request)}
+                  disabled={responding}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
+                >
+                  {responding ? 'Processing...' : 'Reject Request'}
+                </button>
+              </div>
+            ) : !isHistory ? (
+              <button 
+                onClick={() => handleResponseToRequest(request._id, request.type, 'respond', request)}
+                className="bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full"
+              >
+                Respond to Emergency
+              </button>
+            ) : (
+              <div className="mt-3 p-2 bg-gray-50 rounded text-center">
+                <span className="text-sm text-gray-600">
+                  Request {request.status === 'accepted' ? 'Accepted' : 'Rejected'}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {request.message && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-sm text-blue-800">
+            <strong>Message:</strong> {request.message}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Incoming Requests</h2>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Blood Requests</h2>
         <div className={`px-3 py-1 rounded-full text-sm ${criticalSettings.is_critical_ready 
           ? 'bg-green-100 text-green-800' 
           : 'bg-gray-100 text-gray-600'}`}>
@@ -609,160 +761,95 @@ const RequestsTab = ({ requests, criticalSettings, onRequestAccepted, onRefreshR
         </div>
       </div>
 
-      {requests.length === 0 ? (
-        <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
-          <Bell className="h-16 w-16 text-[var(--text-secondary)] mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No Incoming Requests</h3>
-          <p className="text-[var(--text-secondary)]">
-            {!criticalSettings.is_critical_ready 
-              ? "Enable emergency service in settings to receive urgent blood requests near your location."
-              : "Great! There are no requests at the moment."
-            }
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {requests.map(request => (
-            <div 
-              key={request._id} 
-              className={`bg-[var(--card-background)] p-6 rounded-lg border-l-4 border border-[var(--border-color)] ${
-                request.type === 'donor_contact_request' 
-                  ? 'border-l-blue-500' 
-                  : request.urgency === 'critical' 
-                    ? 'border-l-red-500' 
-                    : 'border-l-orange-500'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  {request.type === 'donor_contact_request' ? (
-                    <User className="h-5 w-5 text-blue-500" />
-                  ) : (
-                    <AlertTriangle className="h-5 w-5 text-red-500" />
-                  )}
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    request.urgency === 'critical' 
-                      ? 'bg-red-100 text-red-800' 
-                      : request.urgency === 'high'
-                        ? 'bg-orange-100 text-orange-800'
-                        : request.urgency === 'urgent'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {request.urgency.toUpperCase()}
-                  </span>
-                  {request.type === 'donor_contact_request' && (
-                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                      Direct Request
-                    </span>
-                  )}
-                </div>
-                <div className="text-right">
-                  {request.distance > 0 && (
-                    <div className="flex items-center space-x-1 text-sm text-[var(--text-secondary)]">
-                      <Navigation className="h-4 w-4" />
-                      <span>{request.distance}km away</span>
-                    </div>
-                  )}
-                  <div className="text-xs text-[var(--text-secondary)]">
-                    {new Date(request.created_at).toLocaleString()}
-                  </div>
-                  {request.expires_at && (
-                    <div className="text-xs text-red-500">
-                      Expires: {new Date(request.expires_at).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              </div>
+      {/* Request Type Tabs */}
+      <div className="flex space-x-1 bg-gray-600 p-1 rounded-lg">
+        <button
+          onClick={() => setActiveRequestTab('pending')}
+          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeRequestTab === 'pending'
+              ? 'bg-white text-gray-600 shadow-sm'
+              : 'text-white hover:text-white'
+          }`}
+        >
+          Incoming ({pendingRequests.length})
+        </button>
+        <button
+          onClick={() => setActiveRequestTab('accepted')}
+          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeRequestTab === 'accepted'
+              ? 'bg-white text-green-600 shadow-sm'
+              : 'text-white hover:text-white'
+          }`}
+        >
+          Accepted ({acceptedRequests.length})
+        </button>
+        <button
+          onClick={() => setActiveRequestTab('rejected')}
+          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeRequestTab === 'rejected'
+              ? 'bg-white text-red-600 shadow-sm'
+              : 'text-white hover:text-white'
+          }`}
+        >
+          Rejected ({rejectedRequests.length})
+        </button>
+      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold text-[var(--text-primary)] mb-2">Request Details</h4>
-                  <div className="space-y-1 text-sm">
-                    <p><strong>Blood Type:</strong> <span className="text-[#ef4444] font-bold">{request.blood_type}</span></p>
-                    {request.units_needed && <p><strong>Units Needed:</strong> {request.units_needed}</p>}
-                    {request.patient_name && <p><strong>Patient:</strong> {request.patient_name}</p>}
-                    {request.hospital_name && <p><strong>Hospital:</strong> {request.hospital_name}</p>}
-                    {request.requester_name && <p><strong>Requested by:</strong> {request.requester_name}</p>}
-                    {request.requester_role && (
-                      <p><strong>Role:</strong> 
-                        <span className={`ml-1 px-2 py-1 rounded text-xs ${
-                          request.requester_role === 'bloodbank' 
-                            ? 'bg-red-100 text-red-700' 
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {request.requester_role}
-                        </span>
-                      </p>
-                    )}
-                    {request.location && <p><strong>Location:</strong> {request.location}</p>}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-[var(--text-primary)] mb-2">Contact & Actions</h4>
-                  <div className="space-y-2 text-sm">
-                    {request.contact_email && (
-                      <div className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-[var(--text-secondary)]" />
-                        <span>{request.contact_email}</span>
-                      </div>
-                    )}
-                    
-                    {request.type === 'donor_contact_request' ? (
-                      <div className="space-y-2 mt-3">
-                        <button
-                          onClick={() => handleResponseToRequest(request._id, request.type, 'accept', request)}
-                          disabled={responding}
-                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
-                        >
-                          {responding ? 'Processing...' : 'Accept Request'}
-                        </button>
-                        <button
-                          onClick={() => handleResponseToRequest(request._id, request.type, 'reject', request)}
-                          disabled={responding}
-                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full disabled:opacity-50"
-                        >
-                          {responding ? 'Processing...' : 'Reject Request'}
-                        </button>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={() => handleResponseToRequest(request._id, request.type, 'respond', request)}
-                        className="bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full"
-                      >
-                        Respond to Emergency
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {request.message && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                  <p className="text-sm text-blue-800">
-                    <strong>Message:</strong> {request.message}
-                  </p>
-                </div>
-              )}
-
-              {request.emergency_details && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
-                  <p className="text-sm text-red-800">
-                    <strong>Emergency Details:</strong> {request.emergency_details}
-                  </p>
-                </div>
-              )}
-
-              {request.patient_condition && (
-                <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded">
-                  <p className="text-sm text-orange-800">
-                    <strong>Patient Condition:</strong> {request.patient_condition}
-                  </p>
-                </div>
-              )}
+      {/* Request Content */}
+      {activeRequestTab === 'pending' && (
+        <div>
+          {pendingRequests.length === 0 ? (
+            <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
+              <Bell className="h-16 w-16 text-[var(--text-secondary)] mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No Incoming Requests</h3>
+              <p className="text-[var(--text-secondary)]">
+                {!criticalSettings.is_critical_ready 
+                  ? "Enable emergency service in settings to receive urgent blood requests near your location."
+                  : "Great! There are no pending requests at the moment."
+                }
+              </p>
             </div>
-          ))}
+          ) : (
+            <div className="space-y-4">
+              {pendingRequests.map(request => renderRequestCard(request, false))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeRequestTab === 'accepted' && (
+        <div>
+          {acceptedRequests.length === 0 ? (
+            <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
+              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No Accepted Requests</h3>
+              <p className="text-[var(--text-secondary)]">
+                Requests you accept will appear here for your reference.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {acceptedRequests.map(request => renderRequestCard(request, true))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeRequestTab === 'rejected' && (
+        <div>
+          {rejectedRequests.length === 0 ? (
+            <div className="text-center py-12 bg-[var(--card-background)] rounded-lg border border-[var(--border-color)]">
+              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No Rejected Requests</h3>
+              <p className="text-[var(--text-secondary)]">
+                Requests you reject will appear here for your reference.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {rejectedRequests.map(request => renderRequestCard(request, true))}
+            </div>
+          )}
         </div>
       )}
     </div>

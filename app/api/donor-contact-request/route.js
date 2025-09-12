@@ -106,9 +106,32 @@ export async function GET(request) {
       // Get requests received by this donor
       const donor = await Doner.findOne({ user_id: user._id });
       if (!donor) {
-        return NextResponse.json({ requests: [] });
+        return NextResponse.json({ 
+          pendingRequests: [],
+          acceptedRequests: [],
+          rejectedRequests: []
+        });
       }
-      query.donorId = donor._id;
+      
+      // Get requests grouped by status
+      const [pendingRequests, acceptedRequests, rejectedRequests] = await Promise.all([
+        DonorContactRequest.find({ donorId: donor._id, status: 'pending' })
+          .populate('requesterId', 'name email')
+          .sort({ createdAt: -1 }),
+        DonorContactRequest.find({ donorId: donor._id, status: 'accepted' })
+          .populate('requesterId', 'name email')
+          .sort({ responseDate: -1 }),
+        DonorContactRequest.find({ donorId: donor._id, status: 'rejected' })
+          .populate('requesterId', 'name email')
+          .sort({ responseDate: -1 })
+      ]);
+      
+      return NextResponse.json({ 
+        pendingRequests,
+        acceptedRequests,
+        rejectedRequests
+      });
+      
     } else if (donorId) {
       // Get specific request status for a donor
       query = {

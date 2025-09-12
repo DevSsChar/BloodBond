@@ -31,20 +31,38 @@ export async function GET(req) {
 
     console.log("🔵 Fetching requests for donor:", donor._id);
 
-    // Fetch DonorContactRequests made to this specific donor
-    const donorContactRequests = await DonorContactRequest.find({
-      donorId: donor._id,
-      status: { $in: ['pending', 'accepted'] }, // Only show active requests
-      expiresAt: { $gt: new Date() } // Only non-expired requests
-    })
-    .populate('requesterId', 'name email role')
-    .sort({ requestDate: -1 })
-    .lean();
+    // Fetch DonorContactRequests made to this specific donor grouped by status
+    const [pendingRequests, acceptedRequests, rejectedRequests] = await Promise.all([
+      DonorContactRequest.find({
+        donorId: donor._id,
+        status: 'pending',
+        expiresAt: { $gt: new Date() } // Only non-expired requests
+      })
+      .populate('requesterId', 'name email role')
+      .sort({ requestDate: -1 })
+      .lean(),
+      
+      DonorContactRequest.find({
+        donorId: donor._id,
+        status: 'accepted'
+      })
+      .populate('requesterId', 'name email role')
+      .sort({ responseDate: -1 })
+      .lean(),
+      
+      DonorContactRequest.find({
+        donorId: donor._id,
+        status: 'rejected'
+      })
+      .populate('requesterId', 'name email role')
+      .sort({ responseDate: -1 })
+      .lean()
+    ]);
 
-    console.log("🔵 Found DonorContactRequests:", donorContactRequests.length);
+    console.log("🔵 Found requests - Pending:", pendingRequests.length, "Accepted:", acceptedRequests.length, "Rejected:", rejectedRequests.length);
 
-    // Transform DonorContactRequests to match the expected format
-    const transformedRequests = donorContactRequests.map(request => ({
+    // Transform function for requests
+    const transformRequest = (request) => ({
       _id: request._id,
       type: 'donor_contact_request',
       blood_type: request.bloodType,
@@ -56,15 +74,23 @@ export async function GET(req) {
       contact_email: request.requesterId?.email,
       created_at: request.requestDate,
       expires_at: request.expiresAt,
+      responded_at: request.responseDate,
       status: request.status,
       distance: 0 // Not applicable for direct requests
-    }));
+    });
 
-    console.log("✅ Transformed requests:", transformedRequests.length);
+    const transformedPending = pendingRequests.map(transformRequest);
+    const transformedAccepted = acceptedRequests.map(transformRequest);
+    const transformedRejected = rejectedRequests.map(transformRequest);
+
+    console.log("✅ Transformed requests - Pending:", transformedPending.length, "Accepted:", transformedAccepted.length, "Rejected:", transformedRejected.length);
 
     return NextResponse.json({
       success: true,
-      requests: transformedRequests
+      requests: transformedPending, // For backwards compatibility
+      pendingRequests: transformedPending,
+      acceptedRequests: transformedAccepted,
+      rejectedRequests: transformedRejected
     });
 
   } catch (error) {
