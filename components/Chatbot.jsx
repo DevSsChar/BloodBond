@@ -170,7 +170,7 @@ const Chatbot = () => {
       }`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-9 pb-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-lg">
+        <div className="flex items-center justify-between px-4 pt-11 pb-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-lg">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
               <MessageCircle className="w-5 h-5" />
