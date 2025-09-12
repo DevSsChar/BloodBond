@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, User, AlertCircle, Database } from 'lucide-react';
+import { AlertCircle, Bot, Database, User } from 'lucide-react';
 
 const ChatMessage = ({ message, isUser, timestamp, isError, hasRealTimeData }) => {
   // Format bot responses to be more professional

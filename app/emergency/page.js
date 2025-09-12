@@ -1,11 +1,11 @@
 "use client"
-import Link from 'next/link';
-import { Clock, Loader, MapPin, Navigation, Phone, TriangleAlert, Users, CheckCircle, UserCircle, Heart, Droplet, XCircle } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { formatCompatibilityForDisplay, getCompatibleBloodTypes } from '@/lib/bloodCompatibility';
+import { formatCompatibilityForDisplay } from '@/lib/bloodCompatibility';
+import { CheckCircle, Clock, Droplet, Heart, Loader, MapPin, Navigation, Phone, TriangleAlert, Users, XCircle } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 const EmergencyPage = () => {
   const { data: session, status } = useSession();

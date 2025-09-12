@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
+import { getCompatibleBloodTypes } from "@/lib/bloodCompatibility.js";
 import BloodBank from "@/model/BloodBank.js";
 import BloodInventory from "@/model/BloodInventory.js";
-import { getCompatibleBloodTypes } from "@/lib/bloodCompatibility.js";
+import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
