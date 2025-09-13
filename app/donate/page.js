@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '../../context/ThemeContext';
 import { 
   MapPin, 
   Calendar, 
@@ -26,15 +25,12 @@ import {
   ExternalLink,
   BookOpen,
   Activity,
-  Target,
-  Sun,
-  Moon
+  Target
 } from 'lucide-react';
 
 export default function DonatePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { isDarkMode, toggleDarkMode } = useTheme();
   const [drives, setDrives] = useState([]);
   const [filteredDrives, setFilteredDrives] = useState([]);
   const [registeredDrives, setRegisteredDrives] = useState([]);
@@ -237,69 +233,54 @@ export default function DonatePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-200 dark:border-red-800 border-t-red-600 dark:border-t-red-400 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg font-medium">Finding donation drives for you...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-200 border-t-red-600 mx-auto mb-4"></div>
+          <p className="text-[var(--text-secondary)] text-lg font-medium">Finding donation drives for you...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--background)] transition-colors duration-300">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Theme Toggle & Hero Section */}
+        {/* Hero Section */}
         <div className="text-center mb-8 sm:mb-12">
-          {/* Theme Toggle Button */}
-          <div className="flex justify-end mb-6">
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 sm:p-3 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 group"
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? (
-                <Sun className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 group-hover:text-yellow-600 transition-colors" />
-              ) : (
-                <Moon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 group-hover:text-gray-700 transition-colors" />
-              )}
-            </button>
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full mb-6 shadow-lg">
+            <Heart className="h-8 w-8 sm:h-10 sm:w-10 text-red-600" />
           </div>
-
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-red-100 dark:bg-red-900/30 rounded-full mb-6 shadow-lg">
-            <Heart className="h-8 w-8 sm:h-10 sm:w-10 text-red-600 dark:text-red-400" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--text-primary)] mb-4 leading-tight">
             Save Lives Through
-            <span className="text-red-600 dark:text-red-400 block">Blood Donation</span>
+            <span className="text-red-600 block">Blood Donation</span>
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed px-4">
+          <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed px-4">
             Join our community of life-savers. Every donation can save up to 3 lives. 
             Find donation drives near you and make a difference today.
           </p>
           
           {/* Quick Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-10 max-w-4xl mx-auto px-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-red-100 dark:border-red-800/30 hover:shadow-xl transition-all duration-300">
-              <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-red-100 dark:bg-red-900/30 rounded-lg mb-3 sm:mb-4">
-                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+            <div className="bg-[var(--card-background)] rounded-2xl p-4 sm:p-6 shadow-lg border border-[var(--border-color)] hover:shadow-xl transition-all duration-300">
+              <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg mb-3 sm:mb-4">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{drives.filter(d => isUpcoming(d.date)).length}</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Active Drives</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{drives.filter(d => isUpcoming(d.date)).length}</h3>
+              <p className="text-[var(--text-secondary)] text-sm sm:text-base">Active Drives</p>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-green-100 dark:border-green-800/30 hover:shadow-xl transition-all duration-300">
-              <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg mb-3 sm:mb-4">
-                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+            <div className="bg-[var(--card-background)] rounded-2xl p-4 sm:p-6 shadow-lg border border-[var(--border-color)] hover:shadow-xl transition-all duration-300">
+              <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg mb-3 sm:mb-4">
+                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{registeredDrives.length}</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Your Registrations</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{registeredDrives.length}</h3>
+              <p className="text-[var(--text-secondary)] text-sm sm:text-base">Your Registrations</p>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-lg border border-purple-100 dark:border-purple-800/30 hover:shadow-xl transition-all duration-300 sm:col-span-2 lg:col-span-1">
-              <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg mb-3 sm:mb-4">
-                <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+            <div className="bg-[var(--card-background)] rounded-2xl p-4 sm:p-6 shadow-lg border border-[var(--border-color)] hover:shadow-xl transition-all duration-300 sm:col-span-2 lg:col-span-1">
+              <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg mb-3 sm:mb-4">
+                <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">3</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Lives Per Donation</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">3</h3>
+              <p className="text-[var(--text-secondary)] text-sm sm:text-base">Lives Per Donation</p>
             </div>
           </div>
         </div>
@@ -308,8 +289,8 @@ export default function DonatePage() {
         {message && (
           <div className={`mb-8 p-4 rounded-xl flex items-center gap-3 max-w-2xl mx-auto ${
             message.includes('Success') || message.includes('🎉')
-              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' 
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
           }`}>
             {message.includes('Success') || message.includes('🎉') ? (
               <CheckCircle className="h-5 w-5 flex-shrink-0" />
@@ -322,13 +303,13 @@ export default function DonatePage() {
 
         {/* Navigation Tabs */}
         <div className="flex flex-wrap items-center justify-between mb-8">
-          <div className="flex bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-200 dark:border-gray-700 mb-4 md:mb-0">
+          <div className="flex bg-[var(--card-background)] rounded-xl p-1 shadow-lg border border-[var(--border-color)] mb-4 md:mb-0">
             <button
               onClick={() => setActiveTab('all')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'all'
                   ? 'bg-red-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               }`}
             >
               All Drives ({drives.length})
@@ -338,7 +319,7 @@ export default function DonatePage() {
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'upcoming'
                   ? 'bg-red-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               }`}
             >
               Upcoming ({drives.filter(d => isUpcoming(d.date)).length})
@@ -348,7 +329,7 @@ export default function DonatePage() {
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'registered'
                   ? 'bg-red-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--background)]'
               }`}
             >
               My Registrations ({registeredDrives.length})
@@ -356,13 +337,13 @@ export default function DonatePage() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex bg-white dark:bg-gray-800 rounded-lg p-1 shadow-md border border-gray-200 dark:border-gray-700">
+          <div className="flex bg-[var(--card-background)] rounded-lg p-1 shadow-md border border-[var(--border-color)]">
             <button
               onClick={() => setViewMode('grid')}
               className={`px-4 py-2 rounded-md transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-[var(--background)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Grid
@@ -371,8 +352,8 @@ export default function DonatePage() {
               onClick={() => setViewMode('list')}
               className={`px-4 py-2 rounded-md transition-all ${
                 viewMode === 'list'
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-[var(--background)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               List
@@ -381,39 +362,39 @@ export default function DonatePage() {
         </div>
 
         {/* Advanced Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
+        <div className="bg-[var(--card-background)] rounded-2xl p-6 shadow-lg border border-[var(--border-color)] mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--text-secondary)]" />
               <input
                 type="text"
                 placeholder="Search drives..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-all"
+                className="w-full pl-11 pr-4 py-3 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] transition-all"
               />
             </div>
 
             {/* Location Filter */}
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--text-secondary)]" />
               <input
                 type="text"
                 placeholder="Filter by location..."
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-all"
+                className="w-full pl-11 pr-4 py-3 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] transition-all"
               />
             </div>
 
             {/* Blood Type Filter */}
             <div className="relative">
-              <Droplet className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+              <Droplet className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--text-secondary)]" />
               <select
                 value={bloodTypeFilter}
                 onChange={(e) => setBloodTypeFilter(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none transition-all"
+                className="w-full pl-11 pr-4 py-3 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] appearance-none transition-all"
               >
                 <option value="">All Blood Types</option>
                 {bloodTypes.map(type => (
@@ -424,12 +405,12 @@ export default function DonatePage() {
 
             {/* Date Filter */}
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--text-secondary)]" />
               <input
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-all"
+                className="w-full pl-11 pr-4 py-3 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] transition-all"
               />
             </div>
           </div>
@@ -444,7 +425,7 @@ export default function DonatePage() {
                   setBloodTypeFilter('');
                   setDateFilter('');
                 }}
-                className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-all"
+                className="text-sm text-red-600 hover:text-red-700 font-medium bg-red-50 px-4 py-2 rounded-lg hover:bg-red-100 transition-all"
               >
                 Clear all filters
               </button>
@@ -455,13 +436,13 @@ export default function DonatePage() {
         {/* Drives Display */}
         {filteredDrives.length === 0 ? (
           <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full mb-6">
-              <Heart className="h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-[var(--background)] border border-[var(--border-color)] rounded-full mb-6">
+              <Heart className="h-12 w-12 text-[var(--text-secondary)]" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-3">
               No donation drives found
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
+            <p className="text-[var(--text-secondary)] mb-8 max-w-md mx-auto">
               {drives.length === 0 
                 ? "There are no upcoming donation drives at the moment. Check back soon!"
                 : "Try adjusting your filters to find drives that match your criteria."
@@ -470,7 +451,7 @@ export default function DonatePage() {
             {drives.length === 0 && (
               <button
                 onClick={fetchDrives}
-                className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white px-8 py-3 rounded-xl transition-all font-medium shadow-lg"
+                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl transition-all font-medium shadow-lg"
               >
                 Refresh Drives
               </button>
@@ -489,7 +470,7 @@ export default function DonatePage() {
               return (
                 <div
                   key={drive._id}
-                  className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
+                  className={`bg-[var(--card-background)] rounded-2xl shadow-lg border border-[var(--border-color)] overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
                     viewMode === 'list' ? 'flex items-center' : ''
                   }`}
                 >
@@ -498,17 +479,17 @@ export default function DonatePage() {
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 line-clamp-2">
                           {drive.title}
                         </h3>
                         <div className="flex items-center gap-3 mb-3">
                           {upcoming && daysUntil <= 3 && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700 border border-red-200">
                               {daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days left`}
                             </span>
                           )}
                           {isRegistered && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 border border-green-200">
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Registered
                             </span>
@@ -519,24 +500,24 @@ export default function DonatePage() {
 
                     {/* Drive Details */}
                     <div className="space-y-3 mb-6">
-                      <div className="flex items-center text-gray-600 dark:text-gray-300">
-                        <Calendar className="h-5 w-5 mr-3 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <div className="flex items-center text-[var(--text-secondary)]">
+                        <Calendar className="h-5 w-5 mr-3 flex-shrink-0 text-red-600" />
                         <span className="font-medium">{formatDate(drive.date)}</span>
                       </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300">
-                        <Clock className="h-5 w-5 mr-3 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <div className="flex items-center text-[var(--text-secondary)]">
+                        <Clock className="h-5 w-5 mr-3 flex-shrink-0 text-red-600" />
                         <span>{formatTime(drive.start_time)} - {formatTime(drive.end_time)}</span>
                       </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300">
-                        <MapPin className="h-5 w-5 mr-3 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <div className="flex items-center text-[var(--text-secondary)]">
+                        <MapPin className="h-5 w-5 mr-3 flex-shrink-0 text-red-600" />
                         <span className="line-clamp-1">{drive.location}</span>
                       </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300">
-                        <Phone className="h-5 w-5 mr-3 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <div className="flex items-center text-[var(--text-secondary)]">
+                        <Phone className="h-5 w-5 mr-3 flex-shrink-0 text-red-600" />
                         <span>{drive.contact_number}</span>
                       </div>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300">
-                        <Building className="h-5 w-5 mr-3 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <div className="flex items-center text-[var(--text-secondary)]">
+                        <Building className="h-5 w-5 mr-3 flex-shrink-0 text-red-600" />
                         <span>{drive.organizer_id?.name || 'Blood Bank'}</span>
                       </div>
                     </div>
@@ -545,14 +526,14 @@ export default function DonatePage() {
                     {drive.required_blood_types && drive.required_blood_types.length > 0 && (
                       <div className="mb-6">
                         <div className="flex items-center mb-2">
-                          <Droplet className="h-4 w-4 mr-2 text-red-600 dark:text-red-400" />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Required Blood Types:</span>
+                          <Droplet className="h-4 w-4 mr-2 text-red-600" />
+                          <span className="text-sm font-medium text-[var(--text-primary)]">Required Blood Types:</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {drive.required_blood_types.map((type) => (
                             <span
                               key={type}
-                              className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm font-medium rounded-full border border-red-200 dark:border-red-800"
+                              className="px-3 py-1 bg-red-50 text-red-700 text-sm font-medium rounded-full border border-red-200"
                             >
                               {type}
                             </span>
@@ -562,22 +543,22 @@ export default function DonatePage() {
                     )}
 
                     {/* Description */}
-                    <p className="text-gray-600 dark:text-gray-300 mb-6 line-clamp-3 leading-relaxed">
+                    <p className="text-[var(--text-secondary)] mb-6 line-clamp-3 leading-relaxed">
                       {drive.description}
                     </p>
 
                     {/* Action Button */}
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="text-sm text-[var(--text-secondary)]">
                         by {drive.organizer_id?.name || 'Blood Bank'}
                       </span>
                       
                       {!upcoming ? (
-                        <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border-color)]">
                           Past Event
                         </span>
                       ) : isRegistered ? (
-                        <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                        <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium bg-green-100 text-green-700 border border-green-200">
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Registered ✓
                         </span>
@@ -585,7 +566,7 @@ export default function DonatePage() {
                         <button
                           onClick={() => handleRegister(drive._id)}
                           disabled={registering === drive._id}
-                          className="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white rounded-xl transition-all font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                          className="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
                         >
                           {registering === drive._id ? (
                             <>
@@ -610,22 +591,22 @@ export default function DonatePage() {
 
         {/* Location Permission Banner */}
         {!userLocation && (
-          <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
+          <div className="mt-12 bg-blue-50 border border-blue-200 rounded-2xl p-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <Navigation className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Navigation className="h-6 w-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                <h4 className="text-lg font-semibold text-blue-900 mb-2">
                   🎯 Find drives near you
                 </h4>
-                <p className="text-blue-700 dark:text-blue-400 mb-4 leading-relaxed">
+                <p className="text-blue-700 mb-4 leading-relaxed">
                   Enable location access to see donation drives sorted by proximity to your location. 
-                  We'll help you find the most convenient drives in your area.
+                  We will help you find the most convenient drives in your area.
                 </p>
                 <button
                   onClick={getUserLocation}
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all shadow-lg transform hover:scale-105"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all shadow-lg transform hover:scale-105"
                 >
                   📍 Enable Location
                 </button>
@@ -635,7 +616,7 @@ export default function DonatePage() {
         )}
 
         {/* Call to Action */}
-        <div className="mt-16 bg-gradient-to-r from-red-600 to-pink-600 dark:from-red-800 dark:to-pink-800 rounded-2xl p-8 text-center text-white">
+        <div className="mt-16 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl p-8 text-center text-white">
           <div className="max-w-2xl mx-auto">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-6">
               <Heart className="h-8 w-8" />
@@ -648,13 +629,13 @@ export default function DonatePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className="bg-white text-red-600 dark:bg-white/90 dark:text-red-700 px-8 py-3 rounded-xl font-semibold hover:bg-red-50 dark:hover:bg-white transition-all shadow-lg transform hover:scale-105"
+                className="bg-white text-red-600 px-8 py-3 rounded-xl font-semibold hover:bg-red-50 transition-all shadow-lg transform hover:scale-105"
               >
                 View Upcoming Drives
               </button>
               <button
                 onClick={() => window.open('/learn-more', '_blank')}
-                className="bg-red-700 dark:bg-red-900 text-white px-8 py-3 rounded-xl font-semibold hover:bg-red-800 dark:hover:bg-red-800 transition-all border-2 border-red-500 dark:border-red-700 transform hover:scale-105"
+                className="bg-red-700 text-white px-8 py-3 rounded-xl font-semibold hover:bg-red-800 transition-all border-2 border-red-500 transform hover:scale-105"
               >
                 Learn More About Donation
               </button>
