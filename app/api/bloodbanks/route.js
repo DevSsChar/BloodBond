@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import BloodBank from "@/model/BloodBank.js";
-import User from "@/model/user.js";
+import BloodBank from "@/models/BloodBank.js";
+import User from "@/models/user.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 export async function POST(req) {

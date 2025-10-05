@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import DonationDrive from "@/model/DonationDrive.js";
-import Donor from "@/model/Doner.js";
-import DriveRegistration from "@/model/DriveRegistration.js";
+import DonationDrive from "@/models/DonationDrive.js";
+import Donor from "@/models/Doner.js";
+import DriveRegistration from "@/models/DriveRegistration.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 // Register for a donation drive

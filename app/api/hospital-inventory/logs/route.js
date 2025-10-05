@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import HospitalInventoryLog from "@/model/HospitalInventoryLog.js";
-import User from "@/model/user.js";
+import HospitalInventoryLog from "@/models/HospitalInventoryLog.js";
+import User from "@/models/user.js";
 import { getToken } from "next-auth/jwt";
 
 // GET - Fetch hospital inventory logs

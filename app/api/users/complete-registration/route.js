@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import User from "@/model/user.js";
+import User from "@/models/user.js";
 import { getToken } from "next-auth/jwt";
 
 export async function POST(req) {

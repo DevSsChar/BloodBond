@@ -1,7 +1,7 @@
 import connectDB from "@/db/connectDB.mjs";
 import { getCompatibleBloodTypes } from "@/lib/bloodCompatibility.js";
-import BloodBank from "@/model/BloodBank.js";
-import BloodInventory from "@/model/BloodInventory.js";
+import BloodBank from "@/models/BloodBank.js";
+import BloodInventory from "@/models/BloodInventory.js";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {

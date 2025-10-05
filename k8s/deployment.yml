@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bloodbond1
+  namespace: bloodbond
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bloodbond1
+  template:
+    metadata:
+      labels:
+        app: bloodbond1
+    spec:
+      containers:
+        - name: bloodbond1
+          image: devs12/frontend1:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
