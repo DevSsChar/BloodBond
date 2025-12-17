@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useTheme } from '@/context/ThemeContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { 
   Calendar, 
@@ -34,8 +35,10 @@ import {
 
 export default function BloodbankDrives() {
   const { data: session } = useSession();
+  const { isDarkMode } = useTheme();
   const [drives, setDrives] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingDrive, setEditingDrive] = useState(null);
   const [selectedDrive, setSelectedDrive] = useState(null);
   const [expandedDrive, setExpandedDrive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -132,8 +135,13 @@ export default function BloodbankDrives() {
     setSubmitting(true);
     
     try {
-      const response = await fetch('/api/bloodbank/drives', {
-        method: 'POST',
+      const url = editingDrive 
+        ? `/api/bloodbank/drives/${editingDrive._id}`
+        : '/api/bloodbank/drives';
+      const method = editingDrive ? 'PATCH' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -142,28 +150,49 @@ export default function BloodbankDrives() {
 
       if (response.ok) {
         const data = await response.json();
-        setFormData({
-          title: '',
-          description: '',
-          location: '',
-          date: '',
-          start_time: '',
-          end_time: '',
-          required_blood_types: [],
-          contact_number: ''
-        });
-        setShowCreateForm(false);
+        resetForm();
         await fetchDrives(); // Refresh the list
+        alert(editingDrive ? 'Drive updated successfully!' : 'Drive created successfully!');
       } else {
         const errorData = await response.json();
-        alert(errorData.error || 'Failed to create donation drive');
+        alert(errorData.error || `Failed to ${editingDrive ? 'update' : 'create'} donation drive`);
       }
     } catch (error) {
-      console.error('Error creating drive:', error);
-      alert('Failed to create donation drive');
+      console.error(`Error ${editingDrive ? 'updating' : 'creating'} drive:`, error);
+      alert(`Failed to ${editingDrive ? 'update' : 'create'} donation drive`);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      location: '',
+      date: '',
+      start_time: '',
+      end_time: '',
+      required_blood_types: [],
+      contact_number: ''
+    });
+    setShowCreateForm(false);
+    setEditingDrive(null);
+  };
+
+  const handleEditDrive = (drive) => {
+    setEditingDrive(drive);
+    setFormData({
+      title: drive.title,
+      description: drive.description,
+      location: drive.location,
+      date: drive.date.split('T')[0], // Format date for input
+      start_time: drive.start_time,
+      end_time: drive.end_time,
+      required_blood_types: drive.required_blood_types || [],
+      contact_number: drive.contact_number
+    });
+    setShowCreateForm(true);
   };
 
   const fetchDriveDetails = async (driveId) => {
@@ -224,13 +253,13 @@ export default function BloodbankDrives() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (driveDate < today) {
-      return 'bg-gray-100 text-gray-600 border-gray-200';
+      return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700';
     } else if (driveDate.toDateString() === today.toDateString()) {
-      return 'bg-green-100 text-green-700 border-green-200';
+      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
     } else if (driveDate.toDateString() === tomorrow.toDateString()) {
-      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
     } else {
-      return 'bg-blue-100 text-blue-700 border-blue-200';
+      return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
     }
   };
 
@@ -278,8 +307,8 @@ export default function BloodbankDrives() {
       <ProtectedRoute allowedRoles={['bloodbank_admin']}>
         <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ef4444] mx-auto"></div>
-            <p className="mt-4 text-[var(--text-secondary)]">Loading drives...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-700 border-t-red-600 dark:border-t-red-400 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-300 font-medium">Loading drives...</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -288,168 +317,177 @@ export default function BloodbankDrives() {
 
   return (
     <ProtectedRoute allowedRoles={['bloodbank_admin']}>
-      <div className="min-h-screen bg-[var(--background)] py-6 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[var(--background)] py-4 sm:py-6 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
-                  Donation Drives
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[var(--text-primary)] mb-2 leading-tight">
+                  🩸 Donation Drives
                 </h1>
-                <p className="text-[var(--text-secondary)]">
-                  Manage and track your blood donation drives
+                <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
+                  Manage and track your blood donation drives with real-time analytics
                 </p>
               </div>
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="mt-4 sm:mt-0 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-[#ef4444] hover:bg-[#dc2626] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ef4444] transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm sm:text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-900 transition-all duration-300 transform hover:scale-105"
               >
-                <Plus className="h-5 w-5 mr-2" />
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 Create New Drive
               </button>
             </div>
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-[var(--card-background)] rounded-xl p-6 border border-[var(--border)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="bg-[var(--card-background)] rounded-xl p-4 sm:p-6 border border-[var(--border)] hover:shadow-lg transition-all duration-300">
               <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-blue-100">
-                  <Target className="h-6 w-6 text-blue-600" />
+                <div className="p-2 sm:p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">Total Drives</p>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">{statistics.totalDrives}</p>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">Total Drives</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{statistics.totalDrives}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-[var(--card-background)] rounded-xl p-6 border border-[var(--border)]">
+            <div className="bg-[var(--card-background)] rounded-xl p-4 sm:p-6 border border-[var(--border)] hover:shadow-lg transition-all duration-300">
               <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-green-100">
-                  <Activity className="h-6 w-6 text-green-600" />
+                <div className="p-2 sm:p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">Active Drives</p>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">{statistics.activeDrives}</p>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">Active Drives</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{statistics.activeDrives}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-[var(--card-background)] rounded-xl p-6 border border-[var(--border)]">
+            <div className="bg-[var(--card-background)] rounded-xl p-4 sm:p-6 border border-[var(--border)] hover:shadow-lg transition-all duration-300">
               <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-purple-100">
-                  <UserCheck className="h-6 w-6 text-purple-600" />
+                <div className="p-2 sm:p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                  <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">Total Registrations</p>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">{statistics.totalRegistrations}</p>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">Total Registrations</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{statistics.totalRegistrations}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-[var(--card-background)] rounded-xl p-6 border border-[var(--border)]">
+            <div className="bg-[var(--card-background)] rounded-xl p-4 sm:p-6 border border-[var(--border)] hover:shadow-lg transition-all duration-300">
               <div className="flex items-center">
-                <div className="p-3 rounded-lg bg-orange-100">
-                  <Award className="h-6 w-6 text-orange-600" />
+                <div className="p-2 sm:p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                  <Award className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-[var(--text-secondary)]">Completed</p>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">{statistics.completedDrives}</p>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">Completed</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{statistics.completedDrives}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Search and Filter */}
-          <div className="bg-[var(--card-background)] rounded-xl p-6 border border-[var(--border)] mb-6">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <div className="bg-[var(--card-background)] rounded-xl p-4 sm:p-6 border border-[var(--border)] mb-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-secondary)]" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-[var(--text-secondary)]" />
                   <input
                     type="text"
                     placeholder="Search drives by title or location..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[#ef4444] focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] placeholder-[var(--text-secondary)]"
+                    className="w-full pl-10 sm:pl-12 pr-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] text-sm sm:text-base transition-all duration-300"
                   />
                 </div>
               </div>
-              <div className="sm:w-48">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-4 py-3 border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[#ef4444] focus:border-transparent bg-[var(--background)] text-[var(--text-primary)]"
-                >
-                  <option value="all">All Drives</option>
-                  <option value="upcoming">Upcoming</option>
-                  <option value="today">Today</option>
-                  <option value="completed">Completed</option>
-                </select>
+              <div className="w-full sm:w-48">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-[var(--text-secondary)]" />
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full pl-10 sm:pl-12 pr-4 py-3 border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-[var(--background)] text-[var(--text-primary)] text-sm sm:text-base appearance-none transition-all duration-300"
+                  >
+                    <option value="all">All Drives</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="today">Today</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-secondary)] pointer-events-none" />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Drives Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {filteredDrives.map((drive) => (
-              <div key={drive._id} className="bg-[var(--card-background)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-lg transition-shadow duration-200">
+              <div key={drive._id} className="bg-[var(--card-background)] rounded-xl border border-[var(--border)] overflow-hidden hover:shadow-xl hover:border-red-200 dark:hover:border-red-800 transition-all duration-300 transform hover:-translate-y-1">
                 {/* Drive Header */}
-                <div className="p-6 pb-4">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2 line-clamp-2">
+                <div className="p-4 sm:p-6 pb-3 sm:pb-4">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className="flex-1 pr-2">
+                      <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] mb-2 line-clamp-2 leading-tight">
                         {drive.title}
                       </h3>
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(drive.date)}`}>
+                      <div className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${getStatusColor(drive.date)}`}>
                         {getStatusText(drive.date)}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                       <button
                         onClick={() => fetchDriveDetails(drive._id)}
-                        className="p-2 text-[var(--text-secondary)] hover:text-[#ef4444] hover:bg-[#ef4444]/10 rounded-lg transition-colors"
+                        className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200 dark:hover:border-red-800"
+                        title="View Details"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
-                      <button className="p-2 text-[var(--text-secondary)] hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <Edit className="h-4 w-4" />
+                      <button 
+                        onClick={() => handleEditDrive(drive)}
+                        className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
+                        title="Edit Drive"
+                      >
+                        <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                   </div>
 
                   {/* Drive Details */}
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm text-[var(--text-secondary)]">
-                      <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>{formatDate(drive.date)}</span>
+                  <div className="space-y-2.5 sm:space-y-3">
+                    <div className="flex items-center text-xs sm:text-sm text-[var(--text-secondary)]">
+                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <span className="font-medium">{formatDate(drive.date)}</span>
                     </div>
-                    <div className="flex items-center text-sm text-[var(--text-secondary)]">
-                      <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <div className="flex items-center text-xs sm:text-sm text-[var(--text-secondary)]">
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 flex-shrink-0 text-red-600 dark:text-red-400" />
                       <span>{formatTime(drive.start_time)} - {formatTime(drive.end_time)}</span>
                     </div>
-                    <div className="flex items-center text-sm text-[var(--text-secondary)]">
-                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="line-clamp-1">{drive.location}</span>
+                    <div className="flex items-center text-xs sm:text-sm text-[var(--text-secondary)]">
+                      <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 flex-shrink-0 text-red-600 dark:text-red-400" />
+                      <span className="line-clamp-1 font-medium">{drive.location}</span>
                     </div>
-                    <div className="flex items-center text-sm text-[var(--text-secondary)]">
-                      <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <div className="flex items-center text-xs sm:text-sm text-[var(--text-secondary)]">
+                      <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 flex-shrink-0 text-red-600 dark:text-red-400" />
                       <span>{drive.contact_number}</span>
                     </div>
                   </div>
 
                   {/* Blood Types */}
                   {drive.required_blood_types && drive.required_blood_types.length > 0 && (
-                    <div className="mt-4">
+                    <div className="mt-3 sm:mt-4">
                       <div className="flex items-center mb-2">
-                        <Droplet className="h-4 w-4 mr-2 text-[var(--text-secondary)]" />
-                        <span className="text-sm font-medium text-[var(--text-secondary)]">Required Blood Types:</span>
+                        <Droplet className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 text-red-600 dark:text-red-400" />
+                        <span className="text-xs sm:text-sm font-medium text-[var(--text-secondary)]">Required Types:</span>
                       </div>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {drive.required_blood_types.map((type) => (
-                          <span key={type} className="px-2 py-1 bg-red-50 text-red-700 text-xs font-medium rounded-full border border-red-200">
+                          <span key={type} className="px-2 sm:px-3 py-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium rounded-full border border-red-200 dark:border-red-800">
                             {type}
                           </span>
                         ))}
@@ -458,29 +496,31 @@ export default function BloodbankDrives() {
                   )}
 
                   {/* Description */}
-                  <p className="mt-4 text-sm text-[var(--text-secondary)] line-clamp-2">
+                  <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
                     {drive.description}
                   </p>
                 </div>
 
                 {/* Registration Stats */}
-                <div className="px-6 py-4 bg-[var(--background)] border-t border-[var(--border)]">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-red-50 dark:from-gray-800 dark:to-red-900/20 border-t border-[var(--border)]">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
                       <div className="text-center">
-                        <p className="text-lg font-bold text-[var(--text-primary)]">
+                        <p className="text-base sm:text-lg font-bold text-[var(--text-primary)]">
                           {drive.registrationStats?.total || 0}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)]">Total</p>
                       </div>
+                      <div className="w-px h-8 bg-[var(--border)]"></div>
                       <div className="text-center">
-                        <p className="text-lg font-bold text-green-600">
+                        <p className="text-base sm:text-lg font-bold text-green-600 dark:text-green-400">
                           {drive.registrationStats?.attended || 0}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)]">Attended</p>
                       </div>
+                      <div className="w-px h-8 bg-[var(--border)]"></div>
                       <div className="text-center">
-                        <p className="text-lg font-bold text-blue-600">
+                        <p className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400">
                           {drive.registrationStats?.registered || 0}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)]">Registered</p>
@@ -488,10 +528,11 @@ export default function BloodbankDrives() {
                     </div>
                     <button
                       onClick={() => fetchDriveDetails(drive._id)}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-[#ef4444] hover:text-[#dc2626] hover:bg-[#ef4444]/10 rounded-lg transition-colors"
+                      className="inline-flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-700 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 group border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
                     >
-                      View Details
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <span className="hidden sm:inline">View Details</span>
+                      <span className="sm:hidden">Details</span>
+                      <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                   </div>
                 </div>
@@ -501,36 +542,49 @@ export default function BloodbankDrives() {
 
           {/* Empty State */}
           {filteredDrives.length === 0 && (
-            <div className="text-center py-12">
-              <Heart className="h-16 w-16 text-[var(--text-secondary)] mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
-                No donation drives found
-              </h3>
-              <p className="text-[var(--text-secondary)] mb-6">
-                {drives.length === 0 
-                  ? "Create your first donation drive to start helping save lives."
-                  : "Try adjusting your search or filter criteria."
-                }
-              </p>
-              {drives.length === 0 && (
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-[#ef4444] hover:bg-[#dc2626] transition-colors"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Create Your First Drive
-                </button>
-              )}
+            <div className="text-center py-12 sm:py-16">
+              <div className="max-w-md mx-auto">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-red-100 dark:bg-red-900/30 rounded-full mb-6">
+                  <Heart className="h-8 w-8 sm:h-10 sm:w-10 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] mb-3">
+                  No donation drives found
+                </h3>
+                <p className="text-[var(--text-secondary)] mb-6 leading-relaxed">
+                  {drives.length === 0 
+                    ? "Create your first donation drive to start helping save lives."
+                    : "Try adjusting your search or filter criteria."
+                  }
+                </p>
+                {drives.length === 0 && (
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all duration-300 transform hover:scale-105"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create Your First Drive
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
 
         {/* Create Drive Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-[var(--card-background)] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-[var(--border)]">
-                <h2 className="text-xl font-semibold text-[var(--text-primary)]">Create New Donation Drive</h2>
+              <div className="flex items-center justify-between p-6 border-b border-[var(--border)]">
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                  {editingDrive ? 'Edit Donation Drive' : 'Create New Donation Drive'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
               </div>
               
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -656,20 +710,23 @@ export default function BloodbankDrives() {
                 <div className="flex justify-end space-x-4 pt-6 border-t border-[var(--border)]">
                   <button
                     type="button"
-                    onClick={() => setShowCreateForm(false)}
-                    className="px-6 py-3 border border-[var(--border)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--background)] transition-colors"
+                    onClick={resetForm}
+                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-6 py-3 bg-[#ef4444] text-white rounded-lg hover:bg-[#dc2626] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                    className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center font-medium shadow-lg"
                   >
                     {submitting && (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     )}
-                    {submitting ? 'Creating...' : 'Create Drive'}
+                    {submitting 
+                      ? (editingDrive ? 'Updating...' : 'Creating...') 
+                      : (editingDrive ? 'Update Drive' : 'Create Drive')
+                    }
                   </button>
                 </div>
               </form>
@@ -679,7 +736,7 @@ export default function BloodbankDrives() {
 
         {/* Drive Details Modal */}
         {selectedDrive && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-[var(--card-background)] rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
@@ -688,9 +745,9 @@ export default function BloodbankDrives() {
                   </h2>
                   <button
                     onClick={() => setSelectedDrive(null)}
-                    className="p-2 hover:bg-[var(--background)] rounded-lg transition-colors"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                   >
-                    <XCircle className="h-5 w-5 text-[var(--text-secondary)]" />
+                    <XCircle className="h-5 w-5" />
                   </button>
                 </div>
               </div>

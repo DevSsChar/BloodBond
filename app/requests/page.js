@@ -295,7 +295,7 @@ const BloodRequestsPage = () => {
                     {request.status === 'accepted' && request.bloodbank_id && (
                       <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
                         <p className="text-sm text-green-700 mb-2">✅ Request Accepted - Blood Bank Contact:</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-green-700">
                           <p><strong>Name:</strong> {request.bloodbank_id.name}</p>
                           <p><strong>Phone:</strong> {request.bloodbank_id.contact_number || 'N/A'}</p>
                           <p><strong>Email:</strong> {request.bloodbank_id.email || 'N/A'}</p>

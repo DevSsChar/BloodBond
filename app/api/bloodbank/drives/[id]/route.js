@@ -16,7 +16,7 @@ export async function PATCH(req, { params }) {
   await connectDB();
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const {
       title,
@@ -127,7 +127,7 @@ export async function DELETE(req, { params }) {
   await connectDB();
 
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Verify the drive belongs to this bloodbank
     const drive = await DonationDrive.findOne({

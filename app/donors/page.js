@@ -460,12 +460,12 @@ const ViewDonors = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
+                    {/* <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
                       <Navigation className="h-4 w-4" />
                       <span className={`font-semibold ${distanceColor}`}>
                         {donor.distance}km away
                       </span>
-                    </div>
+                    </div> */}
 
                     <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
                       <Mail className="h-4 w-4" />
@@ -477,10 +477,10 @@ const ViewDonors = () => {
                       <span>{donor.mobile_number}</span>
                     </div>
                     
-                    <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
+                    {/* <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
                       <MapPin className="h-4 w-4" />
                       <span className="truncate">{donor.address}</span>
-                    </div>
+                    </div> */}
                     
                     <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
                       <Calendar className="h-4 w-4" />
