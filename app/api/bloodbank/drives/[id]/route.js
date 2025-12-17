@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import DonationDrive from "@/model/DonationDrive.js";
+import DonationDrive from "@/models/DonationDrive.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 // Update a specific drive
@@ -144,7 +144,7 @@ export async function DELETE(req, { params }) {
     }
 
     // Check if drive has registrations
-    const DriveRegistration = require("@/model/DriveRegistration.js");
+    const DriveRegistration = require("@/models/DriveRegistration.js");
     const registrationCount = await DriveRegistration.countDocuments({
       drive_id: id
     });

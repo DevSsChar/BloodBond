@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import DonationDrive from "@/model/DonationDrive.js";
-import User from "@/model/user.js";
+import DonationDrive from "@/models/DonationDrive.js";
+import User from "@/models/user.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 // Get all drives for a bloodbank

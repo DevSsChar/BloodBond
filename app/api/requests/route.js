@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import BloodRequest from "@/model/BloodRequest.js";
-import User from "@/model/user.js";
-import BloodBank from "@/model/BloodBank.js";
-import BloodInventory from "@/model/BloodInventory.js";
+import BloodRequest from "@/models/BloodRequest.js";
+import User from "@/models/user.js";
+import BloodBank from "@/models/BloodBank.js";
+import BloodInventory from "@/models/BloodInventory.js";
 import { getToken } from "next-auth/jwt";
 
 export async function POST(req) {

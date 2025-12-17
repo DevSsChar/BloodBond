@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../[...nextauth]/route.js";
 import connectDB from "@/db/connectDB.mjs";
-import User from "@/model/user.js";
+import User from "@/models/user.js";
 
 export async function POST(req) {
   try {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import Donor from "@/model/Doner.js";
+import Donor from "@/models/Doner.js";
 
 // Simple test endpoint to check all donors and their critical status
 export async function GET(req) {

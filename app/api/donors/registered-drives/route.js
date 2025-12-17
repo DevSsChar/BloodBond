@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import DriveRegistration from "@/model/DriveRegistration.js";
+import DriveRegistration from "@/models/DriveRegistration.js";
 import { authenticateRole } from "@/lib/roleAuth.js";
 
 // Get all drives that the donor has registered for

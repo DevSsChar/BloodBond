@@ -157,7 +157,7 @@ const Navbar = () => {
     if (isDonor) {
       items.push(
         { href: '/donate', icon: Droplet, label: 'Donate Blood', active: pathname === '/donate' },
-        { href: '/my-requests', icon: TriangleAlert, label: 'My Requests', active: pathname === '/my-requests' },
+        // { href: '/my-requests', icon: TriangleAlert, label: 'My Requests', active: pathname === '/my-requests' },
         { href: '/dashboard/donor', icon: Activity, label: 'My Donations', active: pathname === '/dashboard/donor' }
       );
     } else if (isBloodBank) {
@@ -172,7 +172,7 @@ const Navbar = () => {
       );
     } else if (isHospital) {
       items.push(
-        { href: '/requests', icon: Hospital, label: 'Blood Requests', active: pathname === '/requests' },
+        // { href: '/requests', icon: Hospital, label: 'Blood Requests', active: pathname === '/requests' },
         { href: '/hospital-requests', icon: Send, label: 'Hospital Requests', active: pathname === '/hospital-requests' },
         { href: '/hospital-inventory', icon: Building, label: 'Inventory Management', active: pathname === '/hospital-inventory' },
         { href: '/dashboard/hospital', icon: Activity, label: 'Hospital Dashboard', active: pathname === '/dashboard/hospital' }

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import DonorContactRequest from "@/model/DonorContactRequest.js";
-import Donor from "@/model/Doner.js";
-import User from "@/model/user.js";
+import DonorContactRequest from "@/models/DonorContactRequest.js";
+import Donor from "@/models/Doner.js";
+import User from "@/models/user.js";
 
 export async function POST(req) {
   try {

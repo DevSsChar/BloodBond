@@ -1,10 +1,10 @@
 import connectDB from '@/db/connectDB.mjs';
-import BloodBank from '@/model/BloodBank.js';
-import BloodInventory from '@/model/BloodInventory.js';
-import HospitalInventory from '@/model/HospitalInventory.js';
-import HospitalInventoryLog from '@/model/HospitalInventoryLog.js';
-import HospitalRequest from '@/model/HospitalRequest.js';
-import User from '@/model/user.js';
+import BloodBank from '@/models/BloodBank.js';
+import BloodInventory from '@/models/BloodInventory.js';
+import HospitalInventory from '@/models/HospitalInventory.js';
+import HospitalInventoryLog from '@/models/HospitalInventoryLog.js';
+import HospitalRequest from '@/models/HospitalRequest.js';
+import User from '@/models/user.js';
 import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../../auth/[...nextauth]/route.js';

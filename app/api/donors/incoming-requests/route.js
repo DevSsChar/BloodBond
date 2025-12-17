@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import Donor from "@/model/Doner.js";
-import DonorContactRequest from "@/model/DonorContactRequest.js";
-import User from "@/model/user.js";
+import Donor from "@/models/Doner.js";
+import DonorContactRequest from "@/models/DonorContactRequest.js";
+import User from "@/models/user.js";
 import { getToken } from "next-auth/jwt";
 
 export async function GET(req) {

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/db/connectDB.mjs';
-import User from '@/model/user';
-import BloodBank from '@/model/BloodBank';
-import BloodInventory from '@/model/BloodInventory';
+import User from '@/models/user';
+import BloodBank from '@/models/BloodBank';
+import BloodInventory from '@/models/BloodInventory';
 import { getToken } from 'next-auth/jwt';
 
 const secret = process.env.NEXTAUTH_SECRET;

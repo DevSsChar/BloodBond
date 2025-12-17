@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
+import connectDB from "@/db/connectDB.mjs";
 import BloodRequest from "@/models/BloodRequest";
 // import { authMiddleware, roleCheck } from "@/lib/auth";
 

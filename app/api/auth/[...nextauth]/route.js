@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 
 // Use explicit .mjs to avoid dual module instances (prevents duplicate mongoose models / stale reads)
 import connectDB from "@/db/connectDB.mjs";
-import User from "@/model/user.js";
+import User from "@/models/user.js";
 
 export const authOptions = {
   providers: [

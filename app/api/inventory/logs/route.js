@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/db";
+import connectDB from "@/db/connectDB.mjs";
 import InventoryLog from "@/models/InventoryLog";
 import User from "@/models/User";
 import BloodBank from "@/models/BloodBank";

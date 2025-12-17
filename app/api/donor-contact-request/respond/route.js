@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import DonorContactRequest from '@/model/DonorContactRequest';
-import User from '@/model/user';
-import Doner from '@/model/Doner';
+import DonorContactRequest from '@/models/DonorContactRequest';
+import User from '@/models/user';
+import Doner from '@/models/Doner';
 import connectDB from '@/db/connectDB';
 
 export async function PATCH(request) {

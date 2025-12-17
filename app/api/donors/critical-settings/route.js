@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from 'next-auth/jwt';
 import connectDB from "@/db/connectDB.mjs";
-import Donor from "@/model/Doner.js";
+import Donor from "@/models/Doner.js";
 
 // Update donor critical service settings (simplified - no radius)
 export async function PUT(req) {

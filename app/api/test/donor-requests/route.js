@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import DonorContactRequest from "@/model/DonorContactRequest.js";
-import Donor from "@/model/Doner.js";
+import DonorContactRequest from "@/models/DonorContactRequest.js";
+import Donor from "@/models/Doner.js";
 
 export async function GET(req) {
   try {

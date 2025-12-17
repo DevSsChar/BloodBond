@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import Doner from "@/model/Doner.js";
-import User from "@/model/user.js";
-import BloodBank from "@/model/BloodBank.js";
+import Doner from "@/models/Doner.js";
+import User from "@/models/user.js";
+import BloodBank from "@/models/BloodBank.js";
 import { getServerSession } from "next-auth";
 
 // Haversine formula to calculate distance between two coordinates

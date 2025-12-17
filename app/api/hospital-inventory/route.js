@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import HospitalInventory from "@/model/HospitalInventory.js";
-import HospitalInventoryLog from "@/model/HospitalInventoryLog.js";
-import User from "@/model/user.js";
+import HospitalInventory from "@/models/HospitalInventory.js";
+import HospitalInventoryLog from "@/models/HospitalInventoryLog.js";
+import User from "@/models/user.js";
 import { getToken } from "next-auth/jwt";
 
 // POST - Add new inventory item or update existing
