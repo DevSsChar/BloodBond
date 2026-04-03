@@ -26,16 +26,24 @@ export async function POST(req) {
 
     console.log("🔵 Parsing request body...");
     const body = await req.json();
-    const { name, age, weight, blood_type, mobile_number, emergency_contact_mobile } = body;
-    console.log("🔵 Request data:", { name, age, weight, blood_type, mobile_number, emergency_contact_mobile });
+    const { name, date_of_birth, age, weight, blood_type, mobile_number, emergency_contact_mobile } = body;
+    console.log("🔵 Request data:", { name, date_of_birth, age, weight, blood_type, mobile_number, emergency_contact_mobile });
 
     console.log("Donor registration for user ID:", token.userId);
 
     // Validate required fields
-    if (!name || !age || !weight || !blood_type || !mobile_number || !emergency_contact_mobile) {
+    if (!name || !date_of_birth || !age || !weight || !blood_type || !mobile_number || !emergency_contact_mobile) {
       console.log("❌ Missing required fields");
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const parsedDob = new Date(date_of_birth);
+    if (Number.isNaN(parsedDob.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid date_of_birth" },
         { status: 400 }
       );
     }
@@ -109,6 +117,7 @@ export async function POST(req) {
       donor = await Donor.findByIdAndUpdate(
         existingDonor._id,
         {
+          date_of_birth: parsedDob,
           age,
           weight,  // Add weight field
           blood_type,
@@ -121,6 +130,7 @@ export async function POST(req) {
       console.log("🔵 Creating new donor profile...");
       donor = await Donor.create({
         user_id: token.userId,
+        date_of_birth: parsedDob,
         age,
         weight,  // Add weight field
         blood_type,

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const donorSchema = new mongoose.Schema({
   donor_id: { type: mongoose.Schema.Types.ObjectId, auto: true }, // primary key
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // FK → User
+  date_of_birth: { type: Date },
   age: { type: Number, required: true }, // Donor's age
   blood_type: { type: String, required: true },
   mobile_number: { type: String, required: true }, // Donor's mobile number

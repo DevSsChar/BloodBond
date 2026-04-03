@@ -20,6 +20,8 @@ const BloodRequestsPage = () => {
   });
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
+  const [showDonorSelectModal, setShowDonorSelectModal] = useState(false);
+  const [availableDonors, setAvailableDonors] = useState([]);
   const [actionType, setActionType] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -45,7 +47,7 @@ const BloodRequestsPage = () => {
         
         // Calculate stats
         const requestStats = {
-          pending: data.requests.filter(r => r.status === 'pending').length,
+          pending: data.requests.filter(r => r.status === 'pending' || r.status === 'shortage_pending').length,
           accepted: data.requests.filter(r => r.status === 'accepted').length,
           rejected: data.requests.filter(r => r.status === 'rejected').length,
           emergency: data.requests.filter(r => r.request_type === 'emergency').length
@@ -91,13 +93,36 @@ const BloodRequestsPage = () => {
       });
 
       if (response.ok) {
+        const data = await response.json();
         if (actionType === 'accepted') {
-          success(`✅ Request accepted successfully! Contact details have been shared.`);
+          let msg = `✅ Request accepted successfully! Contact details have been shared.`;
+          if (data.replacementDonorAssigned) {
+             msg += ` A replacement donor was also assigned to replenish your inventory!`;
+          }
+          success(msg);
         } else if (actionType === 'rejected') {
           success(`❌ Request rejected. Reason has been sent to the requester.`);
         }
         setShowActionModal(false);
         fetchRequests(); // Refresh the list
+      } else if (response.status === 409) {
+        const data = await response.json();
+        // If it requires manual replacement selection
+        if (data.requiresManualReplacement) {
+          setShowActionModal(false);
+          await fetchDonorsForReplacement(selectedRequest.blood_type);
+          setShowDonorSelectModal(true);
+          return;
+        }
+
+        // Auto shortage_pending fallback
+        let message = `⚠️ Request moved to Shortage Pending due to insufficient inventory.`;
+        if (data.replacementDonorAssigned) {
+           message += ` A replacement donor has been assigned automatically!`;
+        }
+        success(message);
+        setShowActionModal(false);
+        fetchRequests();
       } else {
         const data = await response.json();
         error('Failed to update request: ' + data.error);
@@ -105,6 +130,56 @@ const BloodRequestsPage = () => {
     } catch (err) {
       console.error('Error updating request:', err);
       error('Failed to update request. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const fetchDonorsForReplacement = async (bloodType) => {
+    try {
+      // Use API to fetch donors matching blood type
+      const response = await fetch(`/api/donors?bloodType=${encodeURIComponent(bloodType)}&criticalOnly=true&maxDistance=100`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableDonors(data.donors || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch donors', err);
+    }
+  };
+
+  const confirmManualReplacement = async (donorId) => {
+    if (!donorId) {
+      error('Please select a donor to continue.');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const response = await fetch('/api/requests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          request_id: selectedRequest._id,
+          status: 'accepted',
+          replacement_donor_id: donorId
+        })
+      });
+      
+      if (response.ok) {
+        success('Shortage recorded and replacement donor assigned successfully.');
+        setShowActionModal(false);
+        setShowDonorSelectModal(false);
+        fetchRequests();
+      } else {
+        const errData = await response.json();
+        error(errData.error || 'Failed to assign replacement donor');
+      }
+    } catch (err) {
+      error('Failed to confirm manual replacement');
     } finally {
       setActionLoading(false);
     }
@@ -123,6 +198,7 @@ const BloodRequestsPage = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'text-yellow-600';
+      case 'shortage_pending': return 'text-orange-600';
       case 'accepted': return 'text-green-600';
       case 'rejected': return 'text-red-600';
       default: return 'text-gray-600';
@@ -132,6 +208,7 @@ const BloodRequestsPage = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pending': return <Clock className="h-4 w-4" />;
+      case 'shortage_pending': return <TriangleAlert className="h-4 w-4" />;
       case 'accepted': return <CheckCircle className="h-4 w-4" />;
       case 'rejected': return <XCircle className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
@@ -292,7 +369,7 @@ const BloodRequestsPage = () => {
                       </div>
                     )}
 
-                    {request.status === 'accepted' && request.bloodbank_id && (
+                    {request.status === 'accepted' && request.bloodbank_id && session?.user?.role !== 'user' && (
                       <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
                         <p className="text-sm text-green-700 mb-2">✅ Request Accepted - Blood Bank Contact:</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-green-700">
@@ -304,6 +381,39 @@ const BloodRequestsPage = () => {
                       </div>
                     )}
 
+                    {request.status === 'accepted' && request.replacement_assignment_status === 'assigned' && request.replacement_donor_id && (
+                      <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
+                        <p className="text-sm font-semibold text-green-800">✅ Replacement Donor Assigned</p>
+                        <div className="text-xs text-green-700 mt-1 space-y-1">
+                          <p><strong>Name:</strong> {request.replacement_donor_id?.user_id?.name || request.replacement_donor_id?.name || 'N/A'}</p>
+                          <p><strong>Email:</strong> {request.replacement_donor_id?.user_id?.email || request.replacement_donor_id?.email || 'N/A'}</p>
+                          <p><strong>Phone:</strong> {request.replacement_donor_id?.user_id?.mobile_number || request.replacement_donor_id?.mobile_number || 'N/A'}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {request.status === 'shortage_pending' && request.shortage_reason && (
+                      <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
+                        <p className="text-sm text-orange-700 mb-1">⚠️ Inventory Shortage:</p>
+                        <p className="text-orange-800 text-sm mb-2">{request.shortage_reason}</p>
+                        {request.replacement_assignment_status === 'assigned' && request.replacement_donor_id ? (
+                          <div className="bg-green-100 p-2 rounded border border-green-300 mt-2">
+                            <p className="text-sm font-semibold text-green-800">✅ Replacement Donor Assigned</p>
+                            <div className="text-xs text-green-700 mt-1 space-y-1">
+                              <p><strong>Name:</strong> {request.replacement_donor_id?.user_id?.name || request.replacement_donor_id?.name || 'N/A'}</p>
+                              <p><strong>Email:</strong> {request.replacement_donor_id?.user_id?.email || request.replacement_donor_id?.email || 'N/A'}</p>
+                              <p><strong>Phone:</strong> {request.replacement_donor_id?.user_id?.mobile_number || request.replacement_donor_id?.mobile_number || 'N/A'}</p>
+                            </div>
+                          </div>
+                        ) : request.replacement_assignment_status === 'not_found' ? (
+                          <div className="bg-red-100 p-2 rounded border border-red-300 mt-2">
+                            <p className="text-sm font-semibold text-red-800">❌ Replacement Failed</p>
+                            <p className="text-xs text-red-700 mt-1">Could not find a suitable donor nearby to replace this shortage automatically.</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
                     {request.status === 'rejected' && request.rejection_reason && (
                       <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
                         <p className="text-sm text-red-700 mb-1">❌ Request Rejected:</p>
@@ -312,7 +422,7 @@ const BloodRequestsPage = () => {
                     )}
 
                     {/* Action buttons for blood bank admins */}
-                    {session?.user?.role === 'bloodbank_admin' && request.status === 'pending' && (
+                    {session?.user?.role === 'bloodbank_admin' && (request.status === 'pending' || request.status === 'shortage_pending') && (
                       <div className="flex space-x-2 pt-4 border-t border-[var(--border-color)]">
                         <button
                           onClick={() => handleAction(request, 'accepted')}
@@ -369,6 +479,58 @@ const BloodRequestsPage = () => {
                 </button>
                 <button
                   onClick={() => setShowActionModal(false)}
+                  disabled={actionLoading}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Replacement Donor Select Modal */}
+        {showDonorSelectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[var(--card-background)] p-6 rounded-lg border border-[var(--border-color)] max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+              <h3 className="text-xl font-semibold text-[#ef4444] mb-2 flex items-center gap-2">
+                <TriangleAlert className="h-5 w-5" /> Shortage: Select Replacement Donor
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] mb-4">
+                You have insufficient {selectedRequest?.blood_type} inventory. Please assign a replacement donor to keep your stock balanced.
+              </p>
+              
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                {availableDonors.length === 0 ? (
+                  <div className="text-center py-6 text-[var(--text-secondary)]">
+                    No eligible donors found nearby. You must replenish manually.
+                  </div>
+                ) : (
+                  availableDonors.map(donor => (
+                    <div key={donor._id} className="border border-[var(--border-color)] rounded p-3 flex justify-between items-center hover:bg-[var(--hover-color)]">
+                      <div>
+                        <p className="font-medium text-[var(--text-primary)]">{donor.name || 'Anonymous'}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">Blood Type: <span className="text-[#ef4444] font-semibold">{donor.blood_type}</span></p>
+                        <p className="text-xs text-[var(--text-secondary)]">Contact: {donor.mobile_number || 'N/A'}</p>
+                        {donor.distance != null && (
+                          <p className="text-xs text-[var(--text-secondary)]"><MapPin className="inline w-3 h-3"/> {donor.distance} km away</p>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => confirmManualReplacement(donor._id)}
+                        disabled={actionLoading}
+                        className="bg-[#ef4444] hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm transition-colors"
+                      >
+                        Assign
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-3 pt-4 border-t border-[var(--border-color)]">
+                <button
+                  onClick={() => setShowDonorSelectModal(false)}
                   disabled={actionLoading}
                   className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded font-medium transition-colors"
                 >

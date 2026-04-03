@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Search, Clock, CheckCircle, XCircle, User, Phone, MapPin, Building2, MessageSquare, RefreshCw } from 'lucide-react';
+import { Search, Clock, CheckCircle, XCircle, TriangleAlert, User, Phone, MapPin, Building2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 
 const TrackRequestPage = () => {
@@ -131,6 +131,7 @@ const TrackRequestPage = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'shortage_pending': return 'text-orange-600 bg-orange-50 border-orange-200';
       case 'accepted': return 'text-green-600 bg-green-50 border-green-200';
       case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
@@ -140,6 +141,7 @@ const TrackRequestPage = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pending': return <Clock className="w-4 h-4" />;
+      case 'shortage_pending': return <TriangleAlert className="w-4 h-4" />;
       case 'accepted': return <CheckCircle className="w-4 h-4" />;
       case 'rejected': return <XCircle className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
@@ -286,22 +288,6 @@ const TrackRequestPage = () => {
                       <MapPin className="w-4 h-4 text-[var(--text-secondary)]" />
                       <span className="text-sm">{request.bloodbank_id?.address || 'N/A'}</span>
                     </div>
-                    {request.status === 'accepted' && request.bloodbank_id?.contact_number && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-[var(--text-secondary)]" />
-                        <span className="text-sm font-semibold text-[#ef4444]">
-                          {request.bloodbank_id.contact_number}
-                        </span>
-                      </div>
-                    )}
-                    {request.status === 'accepted' && request.bloodbank_id?.email && (
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-[var(--text-secondary)]" />
-                        <span className="text-sm text-[#ef4444]">
-                          {request.bloodbank_id.email}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -318,12 +304,33 @@ const TrackRequestPage = () => {
                   </div>
                 )}
 
+                {/* Replacement donor details for shortage requests */}
+                {(request.status === 'shortage_pending' || (request.status === 'accepted' && request.replacement_assignment_status === 'assigned')) && (
+                  <div>
+                    <h3 className="font-medium text-[var(--text-primary)] mb-3">Shortage Handling</h3>
+                    {request.replacement_assignment_status === 'assigned' && request.replacement_donor_id ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-sm font-medium text-green-800 mb-2">✅ Replacement Donor Assigned</p>
+                        <div className="space-y-1 text-sm text-green-700">
+                          <p><strong>Name:</strong> {request.replacement_donor_id?.user_id?.name || request.replacement_donor_id?.name || 'N/A'}</p>
+                          <p><strong>Email:</strong> {request.replacement_donor_id?.user_id?.email || request.replacement_donor_id?.email || 'N/A'}</p>
+                          <p><strong>Phone:</strong> {request.replacement_donor_id?.user_id?.mobile_number || request.replacement_donor_id?.mobile_number || 'N/A'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                        <p className="text-sm text-orange-800">Replacement donor assignment is in progress.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Acceptance Message */}
                 {request.status === 'accepted' && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <h3 className="font-medium text-green-800 mb-2">✅ Request Accepted!</h3>
                     <p className="text-sm text-green-700">
-                      Your blood request has been accepted. Please contact the blood bank using the provided details to coordinate the blood collection.
+                        Your blood request has been completed successfully.
                     </p>
                   </div>
                 )}
@@ -402,22 +409,6 @@ const TrackRequestPage = () => {
                         <MapPin className="w-4 h-4 text-[var(--text-secondary)]" />
                         <span className="text-sm">{req.bloodbank_id?.address || 'N/A'}</span>
                       </div>
-                      {req.status === 'accepted' && req.bloodbank_id?.contact_number && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-[var(--text-secondary)]" />
-                          <span className="text-sm font-semibold text-[#ef4444]">
-                            {req.bloodbank_id.contact_number}
-                          </span>
-                        </div>
-                      )}
-                      {req.status === 'accepted' && req.bloodbank_id?.email && (
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-[var(--text-secondary)]" />
-                          <span className="text-sm text-[#ef4444]">
-                            {req.bloodbank_id.email}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -438,8 +429,26 @@ const TrackRequestPage = () => {
                     <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
                       <h4 className="font-medium text-green-800 mb-1">✅ Request Accepted!</h4>
                       <p className="text-sm text-green-700">
-                        Your blood request has been accepted. Please contact the blood bank using the provided details to coordinate the blood collection.
+                        Your blood request has been completed successfully.
                       </p>
+                    </div>
+                  )}
+
+                  {(req.status === 'shortage_pending' || (req.status === 'accepted' && req.replacement_assignment_status === 'assigned')) && (
+                    <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <h4 className="font-medium text-orange-800 mb-2">⚠️ Inventory Shortage</h4>
+                      {req.replacement_assignment_status === 'assigned' && req.replacement_donor_id ? (
+                        <div className="bg-green-100 border border-green-300 rounded p-3">
+                          <p className="text-sm font-medium text-green-800 mb-1">✅ Replacement Donor Assigned</p>
+                          <div className="text-sm text-green-700 space-y-1">
+                            <p><strong>Name:</strong> {req.replacement_donor_id?.user_id?.name || req.replacement_donor_id?.name || 'N/A'}</p>
+                            <p><strong>Email:</strong> {req.replacement_donor_id?.user_id?.email || req.replacement_donor_id?.email || 'N/A'}</p>
+                            <p><strong>Phone:</strong> {req.replacement_donor_id?.user_id?.mobile_number || req.replacement_donor_id?.mobile_number || 'N/A'}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-orange-700">A replacement donor is being coordinated by the blood bank.</p>
+                      )}
                     </div>
                   )}
                 </div>
