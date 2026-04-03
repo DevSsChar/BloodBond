@@ -39,7 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# project-specific
-PRD-*.md
-.github/
+.github
+/PRD-birthday-reminders-and-unit-balance.md
