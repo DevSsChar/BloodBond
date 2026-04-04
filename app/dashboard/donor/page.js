@@ -153,6 +153,21 @@ const DonorDashboard = () => {
     }
   };
 
+  const handleMarkNotificationRead = async (notificationId) => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId }),
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.filter(n => n._id !== notificationId));
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
 
 
   const updateCriticalSettings = async (updates) => {
@@ -335,6 +350,7 @@ const DonorDashboard = () => {
               donorStats={donorStats}
               recentActivity={recentActivity}
               notifications={notifications}
+              onMarkAsRead={handleMarkNotificationRead}
             />
           )}
           {activeTab === 'drives' && <DrivesTab drives={donationDrives} onParticipate={participateInDrive} />}
@@ -361,19 +377,29 @@ const DonorDashboard = () => {
 };
 
 // Overview Tab Component
-const OverviewTab = ({ criticalSettings, donorStats, recentActivity, notifications }) => (
+const OverviewTab = ({ criticalSettings, donorStats, recentActivity, notifications, onMarkAsRead }) => (
   <div className="space-y-8">
     {notifications.length > 0 && (
       <div className="bg-[var(--card-background)] p-4 rounded-lg border border-[var(--border-color)]">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3 flex items-center">
-          <Bell className="h-5 w-5 mr-2 text-[#ef4444]" />
-          Notifications
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center">
+            <Bell className="h-5 w-5 mr-2 text-[#ef4444]" />
+            Notifications
+          </h2>
+        </div>
         <div className="space-y-2">
           {notifications.slice(0, 3).map((notification) => (
-            <div key={notification._id} className="p-3 rounded-lg bg-[var(--background)] border border-[var(--border-color)]">
-              <p className="text-sm font-medium text-[var(--text-primary)]">{notification.title}</p>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">{notification.message}</p>
+            <div key={notification._id} className="p-3 rounded-lg bg-[var(--background)] border border-[var(--border-color)] flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">{notification.title}</p>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">{notification.message}</p>
+              </div>
+              <button 
+                onClick={() => onMarkAsRead(notification._id)}
+                className="text-xs text-[#ef4444] hover:text-red-700 font-medium ml-4 shrink-0 px-2 py-1 bg-red-50 rounded"
+              >
+                Mark Read
+              </button>
             </div>
           ))}
         </div>

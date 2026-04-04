@@ -60,6 +60,17 @@ export async function POST(req) {
           donorId: donor._id
         }
       });
+      
+      // Add a recent activity for the birthday
+      await Doner.findByIdAndUpdate(donor._id, {
+        $push: {
+          recent_activity: {
+            type: 'system',
+            description: "It's your birthday! Thanks for being an amazing donor.",
+            date: new Date()
+          }
+        }
+      });
 
       createdCount += 1;
     }

@@ -140,8 +140,8 @@ export async function GET(req) {
 
       if (!allRequests || allRequests.length === 0) {
         return NextResponse.json(
-          { error: "No requests found for this email" },
-          { status: 404 }
+          { requests: [], message: "No requests found for this email" },
+          { status: 200 }
         );
       }
 

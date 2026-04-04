@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth-config.js";
 import connectDB from "@/db/connectDB.mjs";
 import InAppNotification from "@/models/InAppNotification.js";
+import mongoose from "mongoose";
 
 export async function GET(req) {
   try {
     await connectDB();
 
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token || !(token.userId || token.sub)) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = token.userId || token.sub;
+    const userId = session.user.id;
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
     const limit = Number(searchParams.get("limit") || 20);
 
-    const query = { user_id: userId };
+    const query = { user_id: new mongoose.Types.ObjectId(userId) };
     if (unreadOnly) query.is_read = false;
 
     const notifications = await InAppNotification.find(query)
@@ -35,12 +37,12 @@ export async function PATCH(req) {
   try {
     await connectDB();
 
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token || !(token.userId || token.sub)) {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = token.userId || token.sub;
+    const userId = new mongoose.Types.ObjectId(session.user.id);
     const { notificationId, markAllRead } = await req.json();
 
     if (markAllRead) {
