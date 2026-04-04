@@ -74,7 +74,7 @@ const EmergencyPage = () => {
         setLocation(prev => ({ 
           ...prev, 
           loading: false, 
-          error: 'Unable to retrieve your location. Please enable location services.' 
+          error: error.message
         }));
       },
       { enableHighAccuracy: true, timeout: 100000, maximumAge: 60000 }
@@ -174,6 +174,7 @@ const EmergencyPage = () => {
         },
         body: JSON.stringify({
           ...formData,
+          hospitalLocation: formData.hospitalLocation || (location.latitude && location.longitude ? `Current location (${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)})` : ''),
           selectedBloodBankId: selectedBloodBank._id,
           isLoggedIn: !!session,
           userEmail: session?.user?.email || formData.requesterEmail
@@ -196,7 +197,6 @@ const EmergencyPage = () => {
           contactNumber: '',
           bloodType: '',
           unitsRequired: '',
-          hospitalLocation: '',
           emergencyDetails: '',
           latitude: null,
           longitude: null,
@@ -557,21 +557,6 @@ const EmergencyPage = () => {
                   placeholder="Number of units"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                Hospital/Location *
-              </label>
-              <input 
-                type="text" 
-                name="hospitalLocation"
-                value={formData.hospitalLocation}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-3 rounded-lg border border-[var(--border-color)] bg-[var(--background)] text-[var(--text-primary)] focus:ring-2 focus:ring-[#ef4444] focus:border-transparent"
-                placeholder="Hospital name or location"
-              />
             </div>
 
             <div>

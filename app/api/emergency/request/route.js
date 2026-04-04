@@ -29,8 +29,14 @@ export async function POST(req) {
       relationToPatient
     } = body;
 
+    const derivedHospitalLocation = hospitalLocation || (
+      latitude !== null && longitude !== null
+        ? `Current location (${latitude}, ${longitude})`
+        : null
+    );
+
     // Validate required fields
-    if (!patientName || !contactNumber || !bloodType || !unitsRequired || !hospitalLocation || !emergencyDetails || !selectedBloodBankId) {
+    if (!patientName || !contactNumber || !bloodType || !unitsRequired || !emergencyDetails || !selectedBloodBankId) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
@@ -68,7 +74,7 @@ export async function POST(req) {
       emergency_contact_name: patientName,
       emergency_contact_mobile: contactNumber,
       emergency_details: emergencyDetails,
-      hospital_location: hospitalLocation,
+      hospital_location: derivedHospitalLocation,
       user_latitude: latitude,
       user_longitude: longitude
     };

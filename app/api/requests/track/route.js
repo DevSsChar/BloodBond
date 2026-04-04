@@ -39,6 +39,10 @@ export async function GET(req) {
       .populate('requested_by_user', 'name email mobile_number')
       .populate('requested_by_hospital', 'name email mobile_number')
       .populate('bloodbank_id', 'name address contact_number email')
+      .populate({
+        path: 'replacement_donor_id',
+        populate: { path: 'user_id', select: 'name email mobile_number' }
+      })
       .sort({ requested_date: -1 });
 
       // Check if any request is fulfilled
@@ -54,7 +58,7 @@ export async function GET(req) {
         }, { status: 200 });
       } else {
         // Show only active (pending) requests
-        const activeRequests = userRequests.filter(req => req.status === 'pending');
+        const activeRequests = userRequests.filter(req => req.status === 'pending' || req.status === 'shortage_pending');
         return NextResponse.json({ 
           requests: activeRequests, 
           type: 'active',
@@ -128,6 +132,10 @@ export async function GET(req) {
         .populate('requested_by_user', 'name email mobile_number')
         .populate('requested_by_hospital', 'name email mobile_number')
         .populate('bloodbank_id', 'name address contact_number email')
+        .populate({
+          path: 'replacement_donor_id',
+          populate: { path: 'user_id', select: 'name email mobile_number' }
+        })
         .sort({ requested_date: -1 });
 
       if (!allRequests || allRequests.length === 0) {
@@ -150,7 +158,7 @@ export async function GET(req) {
         }, { status: 200 });
       } else {
         // Show only active (pending) requests
-        const activeRequests = allRequests.filter(req => req.status === 'pending');
+        const activeRequests = allRequests.filter(req => req.status === 'pending' || req.status === 'shortage_pending');
         return NextResponse.json({ 
           requests: activeRequests, 
           type: 'active',
@@ -163,6 +171,10 @@ export async function GET(req) {
         .populate('requested_by_user', 'name email mobile_number')
         .populate('requested_by_hospital', 'name email mobile_number')
         .populate('bloodbank_id', 'name address contact_number email')
+        .populate({
+          path: 'replacement_donor_id',
+          populate: { path: 'user_id', select: 'name email mobile_number' }
+        })
         .sort({ requested_date: -1 });
 
       if (!request) {

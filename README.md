@@ -1,4 +1,4 @@
-# 🩸 BloodBond - Blood Bank Management System
+#  BloodBond - Blood Bank Management System
 
 <div align="center">
 
@@ -20,38 +20,38 @@
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
-- [🌟 Overview](#-overview)
-- [✨ Key Features](#-key-features)
-- [🏗️ Architecture](#️-architecture)
-- [🔧 Tech Stack](#-tech-stack)
-- [📁 Project Structure](#-project-structure)
-- [🚀 Getting Started](#-getting-started)
-- [🔑 Authentication System](#-authentication-system)
-- [👥 User Roles & Permissions](#-user-roles--permissions)
-- [📊 Core Modules](#-core-modules)
-- [🤖 AI Chatbot Integration](#-ai-chatbot-integration)
-- [📱 API Documentation](#-api-documentation)
-- [🎨 UI Components](#-ui-components)
-- [🔧 Utilities & Hooks](#-utilities--hooks)
-- [🚀 Deployment](#-deployment)
-- [🤝 Contributing](#-contributing)
+- [ Overview](#-overview)
+- [ Key Features](#-key-features)
+- [ Architecture](#-architecture)
+- [ Tech Stack](#-tech-stack)
+- [ Project Structure](#-project-structure)
+- [ Getting Started](#-getting-started)
+- [ Authentication System](#-authentication-system)
+- [ User Roles & Permissions](#-user-roles--permissions)
+- [ Core Modules](#-core-modules)
+- [ AI Chatbot Integration](#-ai-chatbot-integration)
+- [ API Documentation](#-api-documentation)
+- [ UI Components](#-ui-components)
+- [ Utilities & Hooks](#-utilities--hooks)
+- [ Deployment](#-deployment)
+- [ Contributing](#-contributing)
 
 ---
 
-## 🌟 Overview
+##  Overview
 
 **BloodBond** is a modern, full-stack blood bank management system designed to streamline blood donation and distribution processes. The platform connects three main stakeholders: **Donors**, **Hospitals**, and **Blood Banks** through an intuitive web interface with real-time notifications, inventory management, and AI-powered assistance.
 
-### 🎯 Mission
+###  Mission
 To create a seamless, efficient, and life-saving blood management ecosystem that reduces the gap between blood availability and medical needs.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-### 🩸 **Advanced Blood Request Management**
+###  **Advanced Blood Request Management**
 - **Emergency Blood Requests**: Instant blood requests with nearby blood bank notifications
 - **Request Tracking**: Real-time status tracking for all blood requests
 - **Smart Matching**: Automatic blood type compatibility checking with blood compatibility matrix
@@ -59,14 +59,14 @@ To create a seamless, efficient, and life-saving blood management ecosystem that
 - **Hospital Request System**: Specialized hospital-to-blood bank request management
 - **Bulk Request Processing**: Handle multiple blood requests efficiently
 
-### 👤 **Multi-Role Authentication**
+###  **Multi-Role Authentication**
 - **JWT-based Authentication**: Secure session management with NextAuth.js
 - **Role-based Access Control**: Distinct interfaces for Donors, Hospitals, and Blood Banks
 - **Protected Routes**: Secure access to role-specific functionalities with RoleGuard components
 - **Session Persistence**: Automatic session management and refresh
 - **Multi-step Registration**: Comprehensive registration flow with role-specific profile completion
 
-### 📊 **Comprehensive Inventory Management**
+###  **Comprehensive Inventory Management**
 - **Dual Inventory Systems**: Separate inventory management for Blood Banks and Hospitals
 - **Real-time Blood Inventory**: Live tracking of blood units by type with expiry monitoring
 - **Hospital Inventory Management**: Independent hospital blood stock control with batch tracking
@@ -74,41 +74,41 @@ To create a seamless, efficient, and life-saving blood management ecosystem that
 - **Stock Level Indicators**: Visual indicators for stock status (Good/Low Stock/Critical)
 - **Expiry Management**: Advanced expiration tracking with automated alerts
 
-### 🚨 **Enhanced Emergency System**
+###  **Enhanced Emergency System**
 - **Emergency Requests**: Priority handling for urgent blood needs with emergency call interface
 - **Proximity Search**: Location-based blood bank recommendations
 - **Instant Notifications**: Real-time alerts to relevant blood banks
 - **Guest Access**: Emergency requests without mandatory registration
 - **Emergency Contact Management**: Direct communication channels for urgent situations
 
-### 🩸 **Donation Drive Management**
+###  **Donation Drive Management**
 - **Drive Creation**: Blood banks can create and manage donation drives
 - **Registration System**: Donors can register for specific drives
 - **Drive Analytics**: Comprehensive statistics and reporting for donation drives
 - **Automated Notifications**: Drive reminders and updates to registered donors
 - **Multi-location Support**: Manage drives across different locations
 
-### 🔗 **Donor-Blood Bank Connection System**
+###  **Donor-Blood Bank Connection System**
 - **Direct Donor Requests**: Blood banks can request specific donors for rare blood types
 - **Donor Contact System**: Secure communication between blood banks and donors
 - **Critical Settings**: Donors can set availability for emergency situations
 - **Response Management**: Streamlined donor response tracking and management
 - **Smart Matching**: AI-powered donor-request matching based on location and blood type
 
-### 🤖 **AI-Powered Chatbot**
+###  **AI-Powered Chatbot**
 - **Groq AI Integration**: Intelligent assistance for blood-related queries
 - **Contextual Help**: Role-specific guidance and information
 - **24/7 Availability**: Round-the-clock support for users
 - **Enhanced Chat Interface**: Improved chat UI with message processing and history
 
-### 📱 **Real-time Notifications**
+###  **Real-time Notifications**
 - **Toast Notifications**: Instant feedback for user actions with contextual messaging
 - **Emergency Alerts**: Priority notifications for urgent requests with emergency notification hooks
 - **Status Updates**: Automatic notifications for request status changes
 - **Inventory Alerts**: Low stock and expiry warnings for both blood banks and hospitals
 - **Cross-platform Sync**: Consistent notifications across devices
 
-### 🎨 **Enhanced User Interface**
+###  **Enhanced User Interface**
 - **Responsive Design**: Mobile-first design with seamless desktop experience
 - **Dark/Light Theme**: System-aware theme switching with CSS variables
 - **Interactive Landing Page**: Multi-section home page with feature highlights and statistics
@@ -117,7 +117,7 @@ To create a seamless, efficient, and life-saving blood management ecosystem that
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 BloodBond follows a modern **JAMstack architecture** with enhanced modularity:
 
@@ -136,7 +136,7 @@ BloodBond follows a modern **JAMstack architecture** with enhanced modularity:
 
 ---
 
-## 🔧 Tech Stack
+##  Tech Stack
 
 ### **Frontend**
 - **Framework**: Next.js 15.5.2 (App Router)
@@ -166,92 +166,92 @@ BloodBond follows a modern **JAMstack architecture** with enhanced modularity:
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 bloodbond/
-├── 📁 app/                          # Next.js App Router directory
-│   ├── 📄 layout.js                 # Root layout with providers
-│   ├── 📄 page.js                   # Enhanced landing page with feature sections
-│   ├── 📄 globals.css               # Global styles & CSS variables for theming
-│   ├── 📄 chatbot.css               # Specialized chatbot styling
-│   ├── 📄 dark-theme.css            # Dark theme specific styles
-│   ├── 📁 api/                      # Backend API routes
-│   │   ├── 📁 auth/                 # Enhanced authentication with session management
-│   │   ├── 📁 requests/             # Blood request management with tracking
-│   │   ├── 📁 inventory/            # Blood bank inventory APIs with logging
-│   │   ├── 📁 hospital-inventory/   # Hospital inventory management APIs
-│   │   ├── 📁 hospital-requests/    # Hospital-specific request handling
-│   │   ├── 📁 emergency/            # Emergency request handling
-│   │   ├── 📁 chatbot/              # AI chatbot integration
-│   │   ├── 📁 bloodbank/            # Blood bank specific operations
-│   │   ├── 📁 donors/               # Donor management and statistics
-│   │   ├── 📁 donations/            # Donation tracking and management
-│   │   ├── 📁 donation-drives/      # Drive creation and management
-│   │   ├── 📁 donor-contact-request/# Donor-blood bank communication
-│   │   └── 📁 bloodbank-donor-requests/ # Blood bank to donor requests
-│   ├── 📁 dashboard/                # Role-based dashboards with enhanced analytics
-│   │   ├── 📁 donor/                # Donor-specific dashboard
-│   │   ├── 📁 hospital/             # Hospital dashboard with inventory overview
-│   │   └── 📁 bloodbank/            # Blood bank dashboard with drive management
-│   ├── 📁 hospital-inventory/       # Hospital inventory management interface
-│   ├── 📁 emergency/                # Emergency request interface
-│   ├── 📁 emergency-call/           # Emergency call interface
-│   ├── 📁 track-request/            # Universal request tracking system
-│   ├── 📁 donor-requests/           # Donor request management
-│   ├── 📁 hospital-requests/        # Hospital request interface
-│   ├── 📁 hospital-request-acceptance/ # Hospital request acceptance
-│   ├── 📁 register/                 # Multi-role registration system
-│   └── 📁 login/                    # Authentication pages
-├── 📁 components/                   # Reusable UI components
-│   ├── 📄 navbar.jsx                # Enhanced navigation with role-based menus
-│   ├── 📄 Login.jsx                 # Authentication form
-│   ├── 📄 Chatbot.jsx               # AI chatbot interface
-│   ├── 📄 ChatInput.jsx             # Enhanced chat input component
-│   ├── 📄 ChatMessage.jsx           # Message display component
-│   ├── 📄 RoleGuard.jsx             # Role-based access control
-│   ├── 📄 RoleSelection.jsx         # Registration role selection
-│   ├── 📄 ProtectedRoute.jsx        # Route protection wrapper
-│   ├── 📄 SessionProvider.jsx       # Authentication wrapper
-│   ├── 📄 footer.jsx                # Site footer
-│   └── 📁 forms/                    # Specialized form components
-├── 📁 context/                      # React Context providers
-│   ├── 📄 ToastContext.jsx          # Enhanced notification system
-│   └── 📄 ThemeContext.jsx          # Advanced dark/light theme management
-├── 📁 hooks/                        # Custom React hooks
-│   ├── 📄 useUserRole.js            # Enhanced role management hook
-│   ├── 📄 useEmergencyNotifications.js # Emergency alerts system
-│   ├── 📄 useEmergencyRequestCheck.js # Emergency request validation
-│   └── 📄 useRequestStatus.js       # Advanced request tracking
-├── 📁 lib/                          # Utility libraries
-│   ├── 📄 roleAuth.js               # Role-based authorization
-│   ├── 📄 groqClient.js             # AI chatbot client
-│   ├── 📄 knowledgeBase.js          # Enhanced chatbot knowledge base
-│   ├── 📄 messageProcessor.js       # Message processing utilities
-│   └── 📄 bloodCompatibility.js     # Blood type compatibility matrix
-├── 📁 model/                        # MongoDB schemas
-│   ├── 📄 user.js                   # Enhanced user model with roles
-│   ├── 📄 BloodRequest.js           # Blood request schema with status tracking
-│   ├── 📄 BloodBank.js              # Blood bank information
-│   ├── 📄 BloodInventory.js         # Blood bank inventory management
-│   ├── 📄 HospitalInventory.js      # Hospital inventory schema with batch tracking
-│   ├── 📄 HospitalInventoryLog.js   # Hospital inventory audit trail
-│   ├── 📄 HospitalProfile.js        # Hospital profile management
-│   ├── 📄 HospitalRequest.js        # Hospital-specific requests
-│   ├── 📄 InventoryLog.js           # Blood bank inventory change logs
-│   ├── 📄 Donation.js               # Donation records
-│   ├── 📄 DonationDrive.js          # Donation drive management
-│   ├── 📄 DriveRegistration.js      # Drive registration tracking
-│   ├── 📄 Doner.js                  # Donor profile and statistics
-│   └── 📄 DonorContactRequest.js    # Donor-blood bank communication
-├── 📁 db/                           # Database configuration
-│   └── 📄 connectDB.mjs             # MongoDB connection
-└── 📄 next.config.mjs               # Next.js configuration
+├──  app/                          # Next.js App Router directory
+│   ├──  layout.js                 # Root layout with providers
+│   ├──  page.js                   # Enhanced landing page with feature sections
+│   ├──  globals.css               # Global styles & CSS variables for theming
+│   ├──  chatbot.css               # Specialized chatbot styling
+│   ├──  dark-theme.css            # Dark theme specific styles
+│   ├──  api/                      # Backend API routes
+│   │   ├──  auth/                 # Enhanced authentication with session management
+│   │   ├──  requests/             # Blood request management with tracking
+│   │   ├──  inventory/            # Blood bank inventory APIs with logging
+│   │   ├──  hospital-inventory/   # Hospital inventory management APIs
+│   │   ├──  hospital-requests/    # Hospital-specific request handling
+│   │   ├──  emergency/            # Emergency request handling
+│   │   ├──  chatbot/              # AI chatbot integration
+│   │   ├──  bloodbank/            # Blood bank specific operations
+│   │   ├──  donors/               # Donor management and statistics
+│   │   ├──  donations/            # Donation tracking and management
+│   │   ├──  donation-drives/      # Drive creation and management
+│   │   ├──  donor-contact-request/# Donor-blood bank communication
+│   │   └──  bloodbank-donor-requests/ # Blood bank to donor requests
+│   ├──  dashboard/                # Role-based dashboards with enhanced analytics
+│   │   ├──  donor/                # Donor-specific dashboard
+│   │   ├──  hospital/             # Hospital dashboard with inventory overview
+│   │   └──  bloodbank/            # Blood bank dashboard with drive management
+│   ├──  hospital-inventory/       # Hospital inventory management interface
+│   ├──  emergency/                # Emergency request interface
+│   ├──  emergency-call/           # Emergency call interface
+│   ├──  track-request/            # Universal request tracking system
+│   ├──  donor-requests/           # Donor request management
+│   ├──  hospital-requests/        # Hospital request interface
+│   ├──  hospital-request-acceptance/ # Hospital request acceptance
+│   ├──  register/                 # Multi-role registration system
+│   └──  login/                    # Authentication pages
+├──  components/                   # Reusable UI components
+│   ├──  navbar.jsx                # Enhanced navigation with role-based menus
+│   ├──  Login.jsx                 # Authentication form
+│   ├──  Chatbot.jsx               # AI chatbot interface
+│   ├──  ChatInput.jsx             # Enhanced chat input component
+│   ├──  ChatMessage.jsx           # Message display component
+│   ├──  RoleGuard.jsx             # Role-based access control
+│   ├──  RoleSelection.jsx         # Registration role selection
+│   ├──  ProtectedRoute.jsx        # Route protection wrapper
+│   ├──  SessionProvider.jsx       # Authentication wrapper
+│   ├──  footer.jsx                # Site footer
+│   └──  forms/                    # Specialized form components
+├──  context/                      # React Context providers
+│   ├──  ToastContext.jsx          # Enhanced notification system
+│   └──  ThemeContext.jsx          # Advanced dark/light theme management
+├──  hooks/                        # Custom React hooks
+│   ├──  useUserRole.js            # Enhanced role management hook
+│   ├──  useEmergencyNotifications.js # Emergency alerts system
+│   ├──  useEmergencyRequestCheck.js # Emergency request validation
+│   └──  useRequestStatus.js       # Advanced request tracking
+├──  lib/                          # Utility libraries
+│   ├──  roleAuth.js               # Role-based authorization
+│   ├──  groqClient.js             # AI chatbot client
+│   ├──  knowledgeBase.js          # Enhanced chatbot knowledge base
+│   ├──  messageProcessor.js       # Message processing utilities
+│   └──  bloodCompatibility.js     # Blood type compatibility matrix
+├──  model/                        # MongoDB schemas
+│   ├──  user.js                   # Enhanced user model with roles
+│   ├──  BloodRequest.js           # Blood request schema with status tracking
+│   ├──  BloodBank.js              # Blood bank information
+│   ├──  BloodInventory.js         # Blood bank inventory management
+│   ├──  HospitalInventory.js      # Hospital inventory schema with batch tracking
+│   ├──  HospitalInventoryLog.js   # Hospital inventory audit trail
+│   ├──  HospitalProfile.js        # Hospital profile management
+│   ├──  HospitalRequest.js        # Hospital-specific requests
+│   ├──  InventoryLog.js           # Blood bank inventory change logs
+│   ├──  Donation.js               # Donation records
+│   ├──  DonationDrive.js          # Donation drive management
+│   ├──  DriveRegistration.js      # Drive registration tracking
+│   ├──  Doner.js                  # Donor profile and statistics
+│   └──  DonorContactRequest.js    # Donor-blood bank communication
+├──  db/                           # Database configuration
+│   └──  connectDB.mjs             # MongoDB connection
+└──  next.config.mjs               # Next.js configuration
 ```
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### **Prerequisites**
 - Node.js 20+ installed
@@ -295,7 +295,7 @@ bloodbond/
 
 ---
 
-## 🔑 Authentication System
+##  Authentication System
 
 ### **Enhanced NextAuth.js Integration**
 ```javascript
@@ -332,9 +332,9 @@ export async function middleware(request) {
 
 ---
 
-## 👥 User Roles & Permissions
+##  User Roles & Permissions
 
-### **🩸 Donor**
+### ** Donor**
 - **Enhanced Profile Management**: Comprehensive donor profile with medical history
 - **Request Tracking**: Monitor blood request status with real-time updates
 - **Donation History**: Track past donations with detailed statistics
@@ -343,7 +343,7 @@ export async function middleware(request) {
 - **Critical Settings**: Configure availability for emergency blood needs
 - **Contact Responses**: Respond to blood bank contact requests
 
-### **🏥 Hospital**
+### ** Hospital**
 - **Patient Management**: Handle patient blood requirements with comprehensive tracking
 - **Hospital Inventory Management**: Independent blood stock management with batch tracking
 - **Inventory Dashboard**: Real-time inventory overview with blood type breakdown
@@ -354,7 +354,7 @@ export async function middleware(request) {
 - **Request Acceptance**: Process incoming blood requests with status management
 - **Emergency Access**: Priority blood request handling with instant notifications
 
-### **🏛️ Blood Bank**
+### ** Blood Bank**
 - **Advanced Inventory Management**: Complete blood stock control with analytics
 - **Request Processing**: Accept/reject blood requests with automated notifications
 - **Donor Coordination**: Manage donor appointments and communication
@@ -366,7 +366,7 @@ export async function middleware(request) {
 
 ---
 
-## 📊 Core Modules
+##  Core Modules
 
 ### **1. Enhanced Blood Request Management** (`/app/api/requests/`)
 ```javascript
@@ -434,7 +434,7 @@ export async function middleware(request) {
 
 ---
 
-## 🤖 AI Chatbot Integration
+##  AI Chatbot Integration
 
 ### **Enhanced Groq AI Implementation**
 ```javascript
@@ -463,7 +463,7 @@ export async function middleware(request) {
 
 ---
 
-## 📱 Enhanced API Documentation
+##  Enhanced API Documentation
 
 ### **Authentication Endpoints**
 ```
@@ -519,7 +519,7 @@ GET    /api/hospital-inventory/logs # Hospital inventory audit logs
 
 ---
 
-## 🎨 Enhanced UI Components
+##  Enhanced UI Components
 
 ### **Core Components**
 
@@ -568,7 +568,7 @@ GET    /api/hospital-inventory/logs # Hospital inventory audit logs
 
 ---
 
-## 🔧 Enhanced Utilities & Hooks
+##  Enhanced Utilities & Hooks
 
 ### **Advanced Custom Hooks**
 
@@ -624,7 +624,7 @@ const { requests, updateStatus, trackProgress, getHistory } = useRequestStatus()
 
 ---
 
-## 🚀 Deployment
+##  Deployment
 
 ### **Vercel Deployment** (Recommended)
 1. **Connect Repository**
@@ -649,7 +649,7 @@ const { requests, updateStatus, trackProgress, getHistory } = useRequestStatus()
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 ### **Enhanced Development Guidelines**
 1. **Code Standards**: Follow ESLint configuration with Prettier formatting
@@ -665,22 +665,22 @@ const { requests, updateStatus, trackProgress, getHistory } = useRequestStatus()
 
 <div align="center">
 
-**Built with ❤️ for saving lives through technology**
+**Built with  for saving lives through technology**
 
 **BloodBond** - *Connecting blood donors, hospitals, and blood banks for a healthier tomorrow*
 
-### 🆕 **Latest Updates (Version 2.0)**
+###  **Latest Updates (Version 2.0)**
 
-- ✅ **Donation Drive Management**: Complete drive creation and participation system
-- ✅ **Advanced Donor-Blood Bank Communication**: Direct contact and request system
-- ✅ **Enhanced Emergency System**: Improved emergency call interface and handling
-- ✅ **Hospital Request Management**: Specialized hospital-to-blood bank request system
-- ✅ **Blood Compatibility Matrix**: Advanced blood type compatibility checking
-- ✅ **Enhanced Chatbot**: Improved AI assistance with message processing
-- ✅ **Role Guard System**: Comprehensive role-based access control
-- ✅ **Multi-step Registration**: Enhanced user onboarding experience
-- ✅ **Advanced Analytics**: Comprehensive statistics and reporting
-- ✅ **Enhanced UI/UX**: Improved interface with better navigation and theming
+-  **Donation Drive Management**: Complete drive creation and participation system
+-  **Advanced Donor-Blood Bank Communication**: Direct contact and request system
+-  **Enhanced Emergency System**: Improved emergency call interface and handling
+-  **Hospital Request Management**: Specialized hospital-to-blood bank request system
+-  **Blood Compatibility Matrix**: Advanced blood type compatibility checking
+-  **Enhanced Chatbot**: Improved AI assistance with message processing
+-  **Role Guard System**: Comprehensive role-based access control
+-  **Multi-step Registration**: Enhanced user onboarding experience
+-  **Advanced Analytics**: Comprehensive statistics and reporting
+-  **Enhanced UI/UX**: Improved interface with better navigation and theming
 
 [![GitHub stars](https://img.shields.io/github/stars/DevSsChar/BloodBond?style=social)](https://github.com/DevSsChar/BloodBond)
 [![GitHub forks](https://img.shields.io/github/forks/DevSsChar/BloodBond?style=social)](https://github.com/DevSsChar/BloodBond/fork)

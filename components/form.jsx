@@ -45,6 +45,7 @@ const DonorForm = ({ onSubmit, loading }) => {
   const { data: session } = useSession();
   const [formData, setFormData] = useState({
     name: session?.user?.name || '',
+    date_of_birth: '',
     age: '',
     weight: '',
     blood_type: '',
@@ -100,6 +101,21 @@ const DonorForm = ({ onSubmit, loading }) => {
           />
         </div>
         
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+            <Calendar className="inline w-4 h-4 mr-2" />
+            Date of Birth *
+          </label>
+          <input
+            type="date"
+            name="date_of_birth"
+            value={formData.date_of_birth}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-[var(--border-color)] rounded-md focus:outline-none focus:ring-2 focus:ring-[#ef4444] bg-[var(--card-background)] text-[var(--text-primary)]"
+          />
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
             <Calendar className="inline w-4 h-4 mr-2" />

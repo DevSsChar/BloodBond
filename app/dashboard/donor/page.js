@@ -39,6 +39,7 @@ const DonorDashboard = () => {
     acceptedRequests: 0
   });
   const [recentActivity, setRecentActivity] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -57,7 +58,8 @@ const DonorDashboard = () => {
         fetchDonationDrives(),
         fetchCriticalSettings(),
         fetchIncomingRequests(),
-        fetchDonorStats()
+        fetchDonorStats(),
+        fetchNotifications()
       ]);
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -136,6 +138,18 @@ const DonorDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching donor stats:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('/api/notifications?unreadOnly=true&limit=10');
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
     }
   };
 
@@ -320,6 +334,7 @@ const DonorDashboard = () => {
               criticalSettings={criticalSettings} 
               donorStats={donorStats}
               recentActivity={recentActivity}
+              notifications={notifications}
             />
           )}
           {activeTab === 'drives' && <DrivesTab drives={donationDrives} onParticipate={participateInDrive} />}
@@ -346,8 +361,25 @@ const DonorDashboard = () => {
 };
 
 // Overview Tab Component
-const OverviewTab = ({ criticalSettings, donorStats, recentActivity }) => (
+const OverviewTab = ({ criticalSettings, donorStats, recentActivity, notifications }) => (
   <div className="space-y-8">
+    {notifications.length > 0 && (
+      <div className="bg-[var(--card-background)] p-4 rounded-lg border border-[var(--border-color)]">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3 flex items-center">
+          <Bell className="h-5 w-5 mr-2 text-[#ef4444]" />
+          Notifications
+        </h2>
+        <div className="space-y-2">
+          {notifications.slice(0, 3).map((notification) => (
+            <div key={notification._id} className="p-3 rounded-lg bg-[var(--background)] border border-[var(--border-color)]">
+              <p className="text-sm font-medium text-[var(--text-primary)]">{notification.title}</p>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">{notification.message}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
     {/* Stats Cards */}
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       <div className="bg-[var(--card-background)] p-6 rounded-lg border border-[var(--border-color)]">

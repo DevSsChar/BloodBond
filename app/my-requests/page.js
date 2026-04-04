@@ -52,6 +52,7 @@ const UserRequestsPage = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'text-yellow-600';
+      case 'shortage_pending': return 'text-orange-600';
       case 'accepted': return 'text-green-600';
       case 'rejected': return 'text-red-600';
       default: return 'text-gray-600';
@@ -61,6 +62,7 @@ const UserRequestsPage = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pending': return <Clock className="h-4 w-4" />;
+      case 'shortage_pending': return <TriangleAlert className="h-4 w-4" />;
       case 'accepted': return <CheckCircle className="h-4 w-4" />;
       case 'rejected': return <XCircle className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
@@ -71,6 +73,8 @@ const UserRequestsPage = () => {
     switch (request.status) {
       case 'pending':
         return `Your ${request.request_type} request for ${request.blood_type} blood is being reviewed by ${request.bloodbank_id?.name || 'the blood bank'}.`;
+      case 'shortage_pending':
+        return `Inventory is currently insufficient for ${request.blood_type}. The blood bank will coordinate donor assignment directly.`;
       case 'accepted':
         return `Great news! Your request has been accepted. Please contact the blood bank immediately.`;
       case 'rejected':
@@ -152,11 +156,13 @@ const UserRequestsPage = () => {
                     {/* Status Message */}
                     <div className={`p-4 rounded-lg mb-4 ${
                       request.status === 'accepted' ? 'bg-green-50 border border-green-200' :
+                      request.status === 'shortage_pending' ? 'bg-orange-50 border border-orange-200' :
                       request.status === 'rejected' ? 'bg-red-50 border border-red-200' :
                       'bg-yellow-50 border border-yellow-200'
                     }`}>
                       <p className={`${
                         request.status === 'accepted' ? 'text-green-800' :
+                        request.status === 'shortage_pending' ? 'text-orange-800' :
                         request.status === 'rejected' ? 'text-red-800' :
                         'text-yellow-800'
                       }`}>
@@ -207,23 +213,39 @@ const UserRequestsPage = () => {
                       </div>
                     )}
 
-                    {/* Blood Bank Contact (if accepted) */}
-                    {request.status === 'accepted' && request.bloodbank_id && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded">
-                        <h4 className="font-medium text-green-800 mb-2">📞 Blood Bank Contact Details:</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-green-700">
-                          <p><strong>Name:</strong> {request.bloodbank_id.name}</p>
-                          <p><strong>Phone:</strong> {request.bloodbank_id.contact_number || 'Not provided'}</p>
-                          <p><strong>Email:</strong> {request.bloodbank_id.email || 'Not provided'}</p>
-                          <p className="md:col-span-2"><strong>Address:</strong> {request.bloodbank_id.address || 'Not provided'}</p>
-                        </div>
-                        <div className="mt-3 p-2 bg-green-100 rounded">
-                          <p className="text-green-800 text-sm font-medium">
-                            🚨 Action Required: Please contact the blood bank immediately to coordinate pickup or delivery.
+                    {/* Replacement Donor Details (for shortage workflows) */}
+                    {(request.status === 'shortage_pending' || request.status === 'accepted') && (
+                      <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded">
+                        <h4 className="font-medium text-orange-800 mb-2">⚠️ Shortage Handling Status</h4>
+
+                        {request.replacement_assignment_status === 'assigned' && request.replacement_donor_id ? (
+                          <div className="bg-green-100 border border-green-300 rounded p-3">
+                            <p className="text-sm font-semibold text-green-800">✅ Replacement Donor Assigned</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-green-700 mt-2">
+                              <p><strong>Name:</strong> {request.replacement_donor_id?.user_id?.name || request.replacement_donor_id?.name || 'N/A'}</p>
+                              <p><strong>Phone:</strong> {request.replacement_donor_id?.user_id?.mobile_number || request.replacement_donor_id?.mobile_number || 'N/A'}</p>
+                              <p className="md:col-span-2"><strong>Email:</strong> {request.replacement_donor_id?.user_id?.email || request.replacement_donor_id?.email || 'N/A'}</p>
+                            </div>
+                            <p className="text-xs text-green-700 mt-2">
+                              The blood bank has initiated replenishment using a nearby donor while your request remains in shortage queue.
+                            </p>
+                          </div>
+                        ) : request.replacement_assignment_status === 'not_found' ? (
+                          <div className="bg-red-100 border border-red-300 rounded p-3">
+                            <p className="text-sm font-semibold text-red-800">❌ Replacement Donor Not Found Yet</p>
+                            <p className="text-xs text-red-700 mt-1">
+                              A suitable replacement donor could not be matched yet. Please stay in touch with the blood bank for next steps.
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-orange-700">
+                            Blood bank is processing shortage recovery and donor coordination.
                           </p>
-                        </div>
+                        )}
                       </div>
                     )}
+
+                    {/* Accepted state intentionally does not show blood bank contact for requester view */}
                   </div>
                 ))}
               </div>

@@ -107,6 +107,7 @@ export async function GET(request) {
       const donor = await Doner.findOne({ user_id: user._id });
       if (!donor) {
         return NextResponse.json({ 
+          requests: [],
           pendingRequests: [],
           acceptedRequests: [],
           rejectedRequests: []
@@ -126,7 +127,18 @@ export async function GET(request) {
           .sort({ responseDate: -1 })
       ]);
       
+      // Combine all requests for backward compatibility with requests array
+      const allRequests = [
+        ...pendingRequests,
+        ...acceptedRequests,
+        ...rejectedRequests
+      ].sort((a, b) => 
+        // Sort by most recent date (created or responded)
+        new Date(b.responseDate || b.createdAt) - new Date(a.responseDate || a.createdAt)
+      );
+      
       return NextResponse.json({ 
+        requests: allRequests,
         pendingRequests,
         acceptedRequests,
         rejectedRequests
