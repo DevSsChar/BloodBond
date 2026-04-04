@@ -77,7 +77,7 @@ const EmergencyPage = () => {
           error: 'Unable to retrieve your location. Please enable location services.' 
         }));
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 100000, maximumAge: 60000 }
     );
   };
 
