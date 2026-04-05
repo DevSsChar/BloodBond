@@ -68,7 +68,7 @@ export default function BloodbankDrives() {
 
   useEffect(() => {
     fetchDrives();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchDrives = async () => {
     try {

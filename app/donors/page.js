@@ -53,7 +53,7 @@ const ViewDonors = () => {
   useEffect(() => {
     fetchDonors();
     fetchContactRequests();
-  }, [maxDistance, criticalOnly]);
+  }, [maxDistance, criticalOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Filter donors based on search term, blood type, and status

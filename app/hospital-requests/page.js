@@ -61,12 +61,12 @@ const HospitalRequests = () => {
     setViewMode('hospital');
     fetchRequests();
     getCurrentLocation();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Fetch requests when view mode changes
     fetchRequests();
-  }, [viewMode]);
+  }, [viewMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {

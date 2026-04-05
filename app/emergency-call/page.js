@@ -87,7 +87,7 @@ const BloodBankEmergencyPage = () => {
   useEffect(() => {
     // Set template donors
     setAvailableDonors(templateDonors);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

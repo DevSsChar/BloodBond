@@ -524,7 +524,7 @@ const DriveRegistrations = ({ driveId }) => {
 
   useEffect(() => {
     fetchRegistrations();
-  }, [driveId]);
+  }, [driveId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRegistrations = async () => {
     try {

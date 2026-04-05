@@ -49,7 +49,7 @@ const DonorDashboard = () => {
     if (session?.user) {
       fetchInitialData();
     }
-  }, [session?.user]);
+  }, [session?.user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchInitialData = async () => {
     setLoading(true);

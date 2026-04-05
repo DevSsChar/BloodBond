@@ -123,7 +123,7 @@ const UserRequestsPage = () => {
                 <User className="h-16 w-16 text-[var(--text-secondary)] mx-auto mb-4 opacity-50" />
                 <p className="text-[var(--text-secondary)] text-lg mb-2">No requests found</p>
                 <p className="text-sm text-[var(--text-secondary)] mb-4">
-                  You haven't submitted any blood requests yet
+                  You haven&apos;t submitted any blood requests yet
                 </p>
                 <Link href="/emergency">
                   <button className="bg-[#ef4444] hover:bg-[#ef4444]/90 text-white px-4 py-2 rounded font-medium transition-colors">

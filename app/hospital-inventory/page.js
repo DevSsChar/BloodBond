@@ -62,7 +62,7 @@ const HospitalInventoryManagement = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchInventory = async () => {
     try {
@@ -259,7 +259,7 @@ const HospitalInventoryManagement = () => {
               Hospital Blood Inventory
             </h1>
             <p className="text-[var(--text-secondary)]">
-              Manage your hospital's blood inventory, track usage, and monitor stock levels
+              Manage your hospital&apos;s blood inventory, track usage, and monitor stock levels
             </p>
           </div>
 

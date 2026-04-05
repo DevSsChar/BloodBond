@@ -1,13 +1,10 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Search, Clock, CheckCircle, XCircle, TriangleAlert, User, Phone, MapPin, Building2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 
 const TrackRequestPage = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const { success, error } = useToast();
   const [searchInput, setSearchInput] = useState('');
@@ -168,7 +165,7 @@ const TrackRequestPage = () => {
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 <span className="font-medium">💡 Tip:</span> Your email ({session.user.email}) is pre-filled below. 
-                We'll automatically show your requests when you first visit this page.
+                We&apos;ll automatically show your requests when you first visit this page.
               </p>
             </div>
           )}
@@ -463,7 +460,7 @@ const TrackRequestPage = () => {
             <XCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Request Not Found</h3>
             <p className="text-[var(--text-secondary)] mb-4">
-              We couldn't find a request with the provided {searchType === 'email' ? 'email address' : 'request ID'}.
+              We couldn&apos;t find a request with the provided {searchType === 'email' ? 'email address' : 'request ID'}.
             </p>
             <div className="text-sm text-[var(--text-secondary)]">
               <p>• Make sure you entered the correct {searchType === 'email' ? 'email address' : 'request ID'}</p>

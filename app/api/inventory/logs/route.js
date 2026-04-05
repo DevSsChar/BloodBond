@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
-import InventoryLog from "@/models/InventoryLog";
-import User from "@/models/User";
-import BloodBank from "@/models/BloodBank";
+import InventoryLog from "@/models/InventoryLog.js";
+import User from "@/models/user.js";
+import BloodBank from "@/models/BloodBank.js";
 
 export async function POST(req) {
   await connectDB();

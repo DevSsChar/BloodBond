@@ -39,7 +39,7 @@ const DebugPage = () => {
         <div className="bg-[var(--card-background)] p-6 rounded-lg border border-[var(--border-color)]">
           <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Expected Behavior</h2>
           <div className="space-y-2 text-sm">
-            <div><strong>If hasRole is false:</strong> User should see "Select Role" in navbar and be redirected to /register</div>
+            <div><strong>If hasRole is false:</strong> User should see &quot;Select Role&quot; in navbar and be redirected to /register</div>
             <div><strong>If hasRole is true and isDonor:</strong> User should see donor navigation items</div>
             <div><strong>If hasRole is true and isBloodBank:</strong> User should see blood bank navigation items</div>
             <div><strong>If hasRole is true and isHospital:</strong> User should see hospital navigation items</div>

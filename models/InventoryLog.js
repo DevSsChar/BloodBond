@@ -10,4 +10,3 @@ const inventoryLogSchema = new mongoose.Schema({
 });
 
 export default mongoose.models.InventoryLog || mongoose.model("InventoryLog", inventoryLogSchema);
-s

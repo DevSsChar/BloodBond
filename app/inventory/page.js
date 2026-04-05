@@ -162,7 +162,7 @@ const InventoryManagement = () => {
                 <Package className="h-8 w-8 text-[#ef4444]" />
                 <h1 className="text-3xl font-bold text-[var(--text-primary)]">Blood Inventory Management</h1>
               </div>
-              <p className="text-[var(--text-secondary)]">Manage your blood bank's inventory</p>
+              <p className="text-[var(--text-secondary)]">Manage your blood bank&apos;s inventory</p>
             </div>
             <button
               onClick={() => setShowAddForm(true)}
