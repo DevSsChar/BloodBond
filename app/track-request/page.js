@@ -1,13 +1,10 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Search, Clock, CheckCircle, XCircle, TriangleAlert, User, Phone, MapPin, Building2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 
 const TrackRequestPage = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const { success, error } = useToast();
   const [searchInput, setSearchInput] = useState('');
