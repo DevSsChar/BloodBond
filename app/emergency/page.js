@@ -1,15 +1,19 @@
 "use client"
 import { useToast } from '@/context/ToastContext';
 import { formatCompatibilityForDisplay } from '@/lib/bloodCompatibility';
-import { CheckCircle, Clock, Droplet, Heart, Loader, MapPin, Navigation, Phone, TriangleAlert, Users, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, Droplet, Heart, Loader, MapPin, Navigation, Phone, ShieldCheck, TriangleAlert, Users, XCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
-const EmergencyPage = () => {
+const FORM_DRAFT_KEY = 'bloodbond_emergency_draft';
+const AADHAAR_STORAGE_KEY = 'bloodbond_emergency_aadhaar';
+
+const EmergencyPageContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { success, error } = useToast();
   
   const [formData, setFormData] = useState({
@@ -42,8 +46,82 @@ const EmergencyPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [submittedRequestId, setSubmittedRequestId] = useState('');
   const [bloodCompatibilityInfo, setBloodCompatibilityInfo] = useState(null);
+  const [aadhaarVerification, setAadhaarVerification] = useState(null);
+  const [startingAadhaar, setStartingAadhaar] = useState(false);
 
-  // Note: Emergency page accessible to all users (logged in or not)
+  const persistFormDraft = useCallback(() => {
+    try {
+      sessionStorage.setItem(
+        FORM_DRAFT_KEY,
+        JSON.stringify({ formData, selectedBloodBankId: selectedBloodBank?._id || null })
+      );
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [formData, selectedBloodBank]);
+
+  useEffect(() => {
+    try {
+      const savedForm = sessionStorage.getItem(FORM_DRAFT_KEY);
+      if (savedForm) {
+        const parsed = JSON.parse(savedForm);
+        if (parsed.formData) {
+          setFormData((prev) => ({ ...prev, ...parsed.formData }));
+        }
+        sessionStorage.removeItem(FORM_DRAFT_KEY);
+      }
+      const savedAadhaar = sessionStorage.getItem(AADHAAR_STORAGE_KEY);
+      if (savedAadhaar) {
+        const parsed = JSON.parse(savedAadhaar);
+        if (parsed.verificationId) {
+          setAadhaarVerification(parsed);
+        }
+        sessionStorage.removeItem(AADHAAR_STORAGE_KEY);
+      }
+    } catch {
+      /* ignore corrupt storage */
+    }
+  }, []);
+
+  useEffect(() => {
+    const flag = searchParams.get('aadhaar');
+    if (flag === 'verified') {
+      success('Aadhaar verified. You can submit your emergency request.');
+    } else if (flag === 'failed') {
+      error('Aadhaar verification did not complete. Please try again.');
+    }
+  }, [searchParams, success, error]);
+
+  const startAadhaarVerification = async () => {
+    setStartingAadhaar(true);
+    persistFormDraft();
+    try {
+      const response = await fetch('/api/kyc/digilocker/session', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) {
+        error(data.error || 'Could not start Aadhaar verification');
+        return;
+      }
+      if (data.devBypass && data.verificationId) {
+        setAadhaarVerification({
+          verificationId: data.verificationId,
+          verifiedName: data.verifiedName || null,
+        });
+        success('Dev mode: identity marked verified (no DigiLocker redirect).');
+        return;
+      }
+      if (!data.authorizationUrl) {
+        error('Could not start Aadhaar verification');
+        return;
+      }
+      window.location.href = data.authorizationUrl;
+    } catch (err) {
+      console.error(err);
+      error('Could not start Aadhaar verification');
+    } finally {
+      setStartingAadhaar(false);
+    }
+  };
   // No authentication redirect for emergency situations
 
   // Get user's current location
@@ -153,6 +231,11 @@ const EmergencyPage = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!aadhaarVerification?.verificationId) {
+      error('Verify your Aadhaar via DigiLocker before submitting');
+      return;
+    }
     
     if (!selectedBloodBank) {
       error('Please select a blood bank first');
@@ -177,7 +260,8 @@ const EmergencyPage = () => {
           hospitalLocation: formData.hospitalLocation || (location.latitude && location.longitude ? `Current location (${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)})` : ''),
           selectedBloodBankId: selectedBloodBank._id,
           isLoggedIn: !!session,
-          userEmail: session?.user?.email || formData.requesterEmail
+          userEmail: session?.user?.email || formData.requesterEmail,
+          aadhaarVerificationId: aadhaarVerification.verificationId,
         })
       });
 
@@ -207,8 +291,9 @@ const EmergencyPage = () => {
         setSelectedBloodBank(null);
         setNearbyBloodBanks([]);
         setGeminiRecommendations('');
+        setAadhaarVerification(null);
       } else {
-        error('Failed to submit request: ' + data.error);
+        error(data.error || 'Failed to submit request');
       }
     } catch (err) {
       console.error('Error submitting request:', err);
@@ -819,10 +904,45 @@ const EmergencyPage = () => {
               </div>
             )}
 
+            <div className="p-5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 space-y-3">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-700 dark:text-amber-300 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-100">Aadhaar verification required</h3>
+                  <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                    Before we send your emergency request, verify identity via DigiLocker (Aadhaar). You will leave this site briefly and return here to submit.
+                  </p>
+                  {!session && (
+                    <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2">
+                      No account yet? You can still request after verification —{' '}
+                      <Link href="/register" className="underline font-medium">create a free account</Link>{' '}
+                      to track requests faster next time.
+                    </p>
+                  )}
+                </div>
+              </div>
+              {aadhaarVerification?.verificationId ? (
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm font-medium">
+                  <CheckCircle className="h-4 w-4" />
+                  Aadhaar verified{aadhaarVerification.verifiedName ? ` (${aadhaarVerification.verifiedName})` : ''}. Valid for 2 hours.
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startAadhaarVerification}
+                  disabled={startingAadhaar}
+                  className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {startingAadhaar ? <Loader className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  {startingAadhaar ? 'Starting…' : 'Verify Aadhaar via DigiLocker'}
+                </button>
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 type="submit"
-                disabled={!selectedBloodBank || submitting}
+                disabled={!selectedBloodBank || !aadhaarVerification?.verificationId || submitting}
                 className="flex-1 bg-[#ef4444] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#ef4444]/90 transition-colors flex items-center justify-center disabled:opacity-50"
               >
                 {submitting ? (
@@ -864,9 +984,9 @@ const EmergencyPage = () => {
                   <span className="text-white text-xs">i</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">For Better Experience</h4>
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">Create an account (recommended)</h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                    Consider creating an account for faster emergency requests, tracking your requests, and accessing additional features.
+                    Aadhaar verifies this request once. An account lets you track status, reuse your profile, and skip re-entering details on future emergencies.
                   </p>
                   <div className="flex gap-2">
                     <Link href="/login" className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors">
@@ -956,4 +1076,16 @@ const EmergencyPage = () => {
   );
 };
 
-export default EmergencyPage;
+export default function EmergencyPageWrapper() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#ef4444]" />
+        </div>
+      }
+    >
+      <EmergencyPageContent />
+    </Suspense>
+  );
+}

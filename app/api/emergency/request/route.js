@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/db/connectDB.mjs";
 import BloodRequest from "@/models/BloodRequest.js";
+import EmergencyAadhaarVerification from "@/models/EmergencyAadhaarVerification.js";
 import User from "@/models/user.js";
 import { getToken } from "next-auth/jwt";
 
@@ -26,7 +27,8 @@ export async function POST(req) {
       userEmail,
       requesterName,
       requesterEmail,
-      relationToPatient
+      relationToPatient,
+      aadhaarVerificationId
     } = body;
 
     const derivedHospitalLocation = hospitalLocation || (
@@ -34,6 +36,51 @@ export async function POST(req) {
         ? `Current location (${latitude}, ${longitude})`
         : null
     );
+
+    if (!aadhaarVerificationId) {
+      return NextResponse.json(
+        { error: "Aadhaar verification is required before submitting an emergency request" },
+        { status: 400 }
+      );
+    }
+
+    const verification = await EmergencyAadhaarVerification.findById(
+      aadhaarVerificationId
+    );
+    if (
+      !verification ||
+      verification.status !== "verified" ||
+      !verification.aadhaar_subject_ref ||
+      !verification.expires_at ||
+      verification.expires_at < new Date()
+    ) {
+      return NextResponse.json(
+        { error: "Aadhaar verification is missing or expired. Please verify again." },
+        { status: 403 }
+      );
+    }
+    if (verification.used_by_request) {
+      return NextResponse.json(
+        { error: "This Aadhaar verification was already used for a request." },
+        { status: 409 }
+      );
+    }
+
+    const duplicateOpen = await BloodRequest.findOne({
+      aadhaar_subject_ref: verification.aadhaar_subject_ref,
+      request_type: "emergency",
+      status: { $in: ["pending", "accepted", "shortage_pending"] },
+    });
+    if (duplicateOpen) {
+      return NextResponse.json(
+        {
+          error:
+            "An open emergency request already exists for this Aadhaar identity. Track the existing request or wait until it is resolved.",
+          existingRequestId: duplicateOpen._id,
+        },
+        { status: 409 }
+      );
+    }
 
     // Validate required fields
     if (!patientName || !contactNumber || !bloodType || !unitsRequired || !emergencyDetails || !selectedBloodBankId) {
@@ -76,7 +123,9 @@ export async function POST(req) {
       emergency_details: emergencyDetails,
       hospital_location: derivedHospitalLocation,
       user_latitude: latitude,
-      user_longitude: longitude
+      user_longitude: longitude,
+      aadhaar_verification_id: verification._id,
+      aadhaar_subject_ref: verification.aadhaar_subject_ref,
     };
 
     // Add user reference for logged-in users, or store requester info for non-logged-in users
@@ -91,6 +140,9 @@ export async function POST(req) {
     }
 
     const emergencyRequest = await BloodRequest.create(emergencyRequestData);
+
+    verification.used_by_request = emergencyRequest._id;
+    await verification.save();
 
     return NextResponse.json({
       success: true,

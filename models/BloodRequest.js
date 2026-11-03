@@ -34,7 +34,13 @@ const bloodRequestSchema = new mongoose.Schema({
   // Fields for non-logged-in emergency requests
   emergency_requester_name: { type: String, default: null },
   emergency_requester_email: { type: String, default: null },
-  relation_to_patient: { type: String, default: null }
+  relation_to_patient: { type: String, default: null },
+  aadhaar_verification_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "EmergencyAadhaarVerification",
+    default: null,
+  },
+  aadhaar_subject_ref: { type: String, default: null, index: true },
 });
 
 export default mongoose.models.BloodRequest || mongoose.model("BloodRequest", bloodRequestSchema);
