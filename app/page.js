@@ -446,7 +446,7 @@ export default function Home() {
               Join the Mission
             </h3>
             <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-8 sm:mb-12">
-              Every donation matters. Every donor saves lives. Be part of the network that's revolutionizing emergency blood response.
+              Every donation matters. Every donor saves lives. Be part of the network that&apos;s revolutionizing emergency blood response.
             </p>
           </div>
 
